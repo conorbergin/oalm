@@ -24,7 +24,4 @@ export const fixer = (root) => {
   root.get('children').forEach(element => {
     fixer(element)
   })
-
-
-
 }

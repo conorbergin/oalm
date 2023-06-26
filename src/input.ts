@@ -74,61 +74,55 @@ export const deleteNode = (node) => {
 
 const replaceContent = (s: Sel, nodeBuilder: (s: string) => [Y.Text, Y.Map<any> | Y.Text]) => {
     if (s.focus) return null
+    if (s.node.parent.has('children') || s.node.parent.has('header')) return 
 
     let [firstCaretLocation, node] = nodeBuilder('')
 
-    let p = s.node.parent! as Y.Array<any>
-    let i = p.toArray().indexOf(s.node)
+    let p = s.node.parent
+    let i = p.parent.toArray().indexOf(p)
 
     s.node = firstCaretLocation
     s.offset = 0
 
     p.doc!.transact(() => {
-        p.delete(i, 1)
-        p.insert(i, [node])
+        p.parent.delete(i, 1)
+        p.parent.insert(i, [node])
     })
 }
 
 const insertContent = (s: Sel, nodeBuilder: (s: string) => [Y.Text, Y.Map<any> | Y.Text], movetext = false) => {
     if (s.focus) return null
 
-    let [firstCaretLocation, node] = nodeBuilder(movetext ? s.node.toString().slice(s.offset) : '')
-
-    let oldS = s
-    let p = s.node.parent.parent!
-
-    s.node = firstCaretLocation
+    
+    let o = s.offset
+    let n = s.node
+    let p = s.node.parent
+    
+    let [cl, nn] = nodeBuilder(movetext ? s.node.toString().slice(s.offset) : '')
+    
+    s.node = cl
     s.offset = 0
 
-
-    switch (p.constructor) {
-        case Y.Array:
-            let i = p.toArray().indexOf(s.node.parent)
-            console.log(i)
-            p.doc!.transact(() => {
-                // movetext && oldS.node.delete(oldS.offset, oldS.node.length - oldS.offset)
-                p.insert(i, [node])
-            })
-            return
-        default:
-            throw new Error('invalid parent', p.toJSON())
+    if (p.has('children')) {
+        p.doc!.transact(() => {
+            movetext && n.delete(o,n.length - o)
+            p.get('content').unshift([nn]) 
+        })
+    } else if (p.parent instanceof Y.Array) {
+        let index = p.parent.toArray().indexOf(p)
+        p.doc!.transact(() => {
+            movetext && n.delete(o,n.length - o)
+            p.parent.insert(index+1, [nn])
+        })
     }
+
 }
 
 
 
 export const insertParagraph = (s: Sel) => {
     if (s.focus) return null
-    switch (true) {
-        case s.node.parent.has('heading') && s.node.parent.get('heading') === s.node:
-            if (s.node.parent.has('children')) {
-                s.node.parent.get('content').unshift([createParagraph('')[1]])
-            } else {
-                let index = s.node.parent.parent.toArray().indexOf(s.node.parent)
-                s.node.parent.parent.insert(index + 1, [createParagraph('')[1]])
-            }
-            return
-    }
+    insertContent(s,createParagraph,true)
 }
 
 
@@ -137,11 +131,19 @@ export const deleteContent = (s: Sel) => {
     if (s.offset === s.node.length) {
         let p = s.node.parent!
 
-
         switch (true) {
-            case p.has('heading') && !p.has('content') && !p.has('children'):
+            case p.has('heading') && !p.has('content') && !p.has('children') && p.parent instanceof Y.Array:
+                let index = p.parent.toArray().indexOf(p)
+                let next = p.parent.get(index + 1)
+                if (next.has('heading') && !next.has('content')) {
+                    let text = next.get('heading').toString()
+                    p.doc.transact(() => {
+                        s.node.insert(s.node.length-1,text)
+                        p.parent.delete(index+1,1)
+                    })
+                }
                 return
-            case 'enum':
+            default:
                 return
         }
 
@@ -234,17 +236,11 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
         case 'insertText':
             if (s.node.length === 0) {
                 switch (e.data) {
-                    case '-':
-                        replaceContent(s, createItem)
-                        break
-                    case '1':
-                        replaceContent(s, createEnum)
-                        break
                     case '|':
                         replaceContent(s, createTable)
                         break
                     case '#':
-                        addSection(getSection(s.node))
+                        addSection(s.node)
                         break
                     default:
                         insertText(s, e.data!)
