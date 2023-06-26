@@ -33,6 +33,7 @@ import { AgendaView } from './Agenda'
 const myDoc = new Y.Doc()
 const indexeddbProvider = new IndexeddbPersistence('my-room-name2', myDoc)
 // const webrtcProvider = new WebrtcProvider('my-room-name2', myDoc)
+
 const root = myDoc.getMap('root')
 
 const undoManager = new Y.UndoManager(root)
@@ -63,6 +64,9 @@ export const App: Component = () => {
 
     indexeddbProvider.on('synced', () => {
         setSynced(true)
+        if (!root.has('children')) {
+            fixer(root)
+        }
     })
 
     return (
