@@ -16,7 +16,7 @@ export const insertText = (s: Sel, text: string) => {
     throw new Error('selection is not in a text node')
 }
 
-const createParagraph = (text: string): [Y.Text, Y.Map<any>] => {
+export const createParagraph = (text: string): [Y.Text, Y.Map<any>] => {
     let ytext = new Y.Text(text)
     let m = new Y.Map()
     m.set('heading', ytext)

@@ -63,10 +63,9 @@ export const App: Component = () => {
     window.onscroll = (e) => scroll() > 20 ? null : setScroll(Math.min(scrollY,15))
 
     indexeddbProvider.on('synced', () => {
+        console.log(root.toJSON())
+        fixer(root)
         setSynced(true)
-        if (!root.has('children')) {
-            fixer(root)
-        }
     })
 
     return (
