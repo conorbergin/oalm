@@ -1,3 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* touch-action: pan-y; */
+
+    --border-color: rgb(112, 179, 164);
+    --background-color: hsl(0, 0%, 100%);
+
+    /* color-scheme: dark light; */
+    /* caret-color: transparent; */
+    font-family: 'InputSans', serif;
+}
+
+
+.table {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    border: 1px solid var(--border-color);
+}
+
+.table-header {
+    font-weight: bold;
+}
+
+.archive {
+    color: blue;
+}
+
+.isCurrentDay {
+    color: rgb(226, 31, 31);
+}
+
+.done {
+    color: rgb(77, 177, 82);
+}
+
+
+
+
+body {
+
+    background-color: var(--background-color);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+
+ol,
+ul {
+    list-style: none;
+}
+
+
+.border {
+    border: 1px solid var(--border-color);
+}
+
+.editor {
+    padding: 0.5rem;
+    padding-top: 0;
+
+}
+
+
+
+
+[contenteditable] {
+
+    outline: none;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    white-space: break-spaces;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0;
+}
+
+
+
+/* drag.css */
 .dragging {
     top: 0;
     left: 0;
@@ -63,36 +148,20 @@
             blue 12px);
 }
 
-.open-shadow:hover, .delete-shadow:hover {
+.open-shadow:hover,
+.delete-shadow:hover {
     opacity: 1;
 }
 
-.block-container {
-    display: flex;
-    gap: 0.1rem;
-    align-items: center;
-}
-
-.block-container > * {
-    margin:0;
+.block-container>* {
+    margin: 0;
     padding: 0 !important;
 }
 
 .block-button {
-    font-family: 'InputSans', serif;
-    font-size: medium;
     display: block;
     touch-action: none;
     user-select: none;
     padding: 0.1rem !important;
     align-content: center;
-}
-
-.block-button > * {
-    margin: 0;
-    padding: 0;
-}
-
-.block-button::selection {
-    background: transparent;
 }

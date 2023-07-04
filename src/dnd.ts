@@ -27,7 +27,7 @@ export const dragSection = (event: PointerEvent, node: any, editor: EditorState)
 
     let targetElement = (event.target as Element).parentElement as HTMLElement
 
-    if (node.has('children')) {
+    if (true) {
         targetElement = targetElement.parentElement
     }
 

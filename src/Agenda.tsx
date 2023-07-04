@@ -1,31 +1,66 @@
 import * as Y from 'yjs';
-import { Component, For, Signal, children, Accessor } from 'solid-js';
+import { Component, For, Signal, children, Accessor, createSignal, onCleanup } from 'solid-js';
+import { TextView } from './Editor';
+
+
+// Agenda format:
+// start datetime + end datetime
+// vague datetime + duration
 
 
 const getAgenda = (root: Y.Map<any>) => {
-    let r = root.has('schedule') ? [{...root.get('schedule').toJSON(),heading : root.get('heading').toString()}] : []
-    let c = root.has('children') ? root.get('children').map((value) => {
-        return getAgenda(value)
-    }) : []
-    return [...r,...c.flat()]
+    let ret = [root.has('schedule') ? root : null, ...root.get('children').map(getAgenda)].flat().filter(n => n)
+    // console.log(ret)
+    return []
 }
 
-export const AgendaView : Component<{path: Accessor<Array<Y.Map<any>>>}> = (props) => {
+export const AgendaView: Component<{ path: Accessor<Array<Y.Map<any>>> }> = (props) => {
     return (
-        <div style={{
-            'display': 'grid',
-            "grid-template-columns": '3fr 1fr 1fr',
-            "margin": '1rem 4rem',
-            'font-family': 'InputSans',
-        }}>
-            <div style="font-weight: bold">Heading</div>
-            <div style="font-weight: bold">Status</div>
-            <div style="font-weight: bold">Date</div>
+        <>
+        Today is {new Date().toLocaleDateString()}
+            <div style={{
+                'display': 'grid',
+                "grid-template-columns": '3fr 1fr 1fr',
+                "margin": '1rem 1.4rem',
+            }}>
+                <div style="font-weight: bold">Heading</div>
+                <div style="font-weight: bold">Status</div>
+                <div style="font-weight: bold">Date</div>
 
-                <For each={getAgenda(props.path().at(-1)!)}>
-                    {(item) => <><div>{item.heading}</div><div style={`color: ${item.status === 'done' ? 'green' : 'red'}`} >{item.status}</div><div>{item.date}</div></>}
-                </For>
 
-        </div>
+
+            </div>
+        </>
+    )
+}
+
+
+const AgendaItem: Component<{ node: Y.Map<any> }> = (props) => {
+    let node = props.node
+
+    // let [date,setDate] = createSignal('')
+    let [date, setDate] = createSignal(node.get('~'))
+    let [done, setDone] = createSignal(node.has('done'))
+
+
+
+    let f = () => {
+        setDate(node.get('~'))
+        setDone(node.has('done'))
+    }
+
+
+    node.observe(f)
+
+    onCleanup(() => {
+        node.unobserve(f)
+    })
+
+    return (
+        <>
+            <p>heading</p>
+            <p classList={{ done: done() }}>Done</p>
+            <p classList={{ done: done() }}>{date()}</p>
+        </>
     )
 }

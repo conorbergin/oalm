@@ -51,13 +51,11 @@ export const selectionFromDom = (s: mySelection, stateFromView: Map<HTMLElement,
     if (!selection || selection.type === "none" || !selection.anchorNode) return null
 
     let anchorNode = getParent(selection.anchorNode, stateFromView)
-    console.log(anchorNode)
     let focusNode = selection.isCollapsed ? null : getParent(selection.focusNode, stateFromView)
 
 
     s.node = stateFromView.get(anchorNode as HTMLElement)
     s.offset = getOffset(anchorNode as HTMLElement)
-    console.log(s.offset)
     s.focus = focusNode ? {
         node: stateFromView.get(focusNode as HTMLElement),
         offset: getOffset(focusNode as HTMLElement)
