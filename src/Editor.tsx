@@ -1,12 +1,15 @@
 import * as Y from 'yjs';
 import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, onMount, on, createEffect, Accessor } from 'solid-js';
-import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, keydownHandler } from './input';
+import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, keydownHandler, addSection } from './input';
 import { dragSection } from './dnd';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
+import { StepSequencer } from './StepSequencer';
+import { TableView } from './Table';
 
 export const [lock, setLock] = createSignal(false)
 
-import { archiveView } from './App'
+import { Picker } from './DatePicker';
+import { AgendaView } from './Agenda';
 
 const PARAGRAPH_HANDLE = '◦'
 const HEADING_HANDLE = '#'
@@ -29,16 +32,26 @@ export class EditorState {
     }
 }
 
+const [archiveView, setArchiveView] = createSignal(false)
+const [agendaView, setAgendaView] = createSignal(false)
+
 
 export const EditorView: Component<{ selection: Sel, root: Y.Map<any> }> = (props) => {
 
-
     let state = new EditorState(props.root)
-
 
     return (
         <>
-            <div class="editor" contenteditable={!lock()} spellcheck={false} onBeforeInput={(e) => {
+            <div class="flex gap-1 pl-1 pr-1 text-sm">
+                <button onClick={() => { addSection(props.selection, props.root) }}>add section</button>
+                |
+                <button onClick={() => { setArchiveView(!archiveView()) }}>archive view</button>
+                <button onClick={() => { setAgendaView(!agendaView()) }}>agenda view</button>
+            </div>
+            <Show when={agendaView()}>
+                <AgendaView root={props.root} />
+            </Show>
+            <div class=" editor overflow-scroll border-t border-black flex justify-center pr-1" contenteditable={!lock()} spellcheck={false} onBeforeInput={(e) => {
                 selectionFromDom(props.selection, state.docFromDom)
                 beforeinputHandler(e, props.selection)
                 selectionToDom(props.selection, state.domFromDoc)
@@ -47,7 +60,9 @@ export const EditorView: Component<{ selection: Sel, root: Y.Map<any> }> = (prop
                 keydownHandler(e, props.selection)
                 selectionToDom(props.selection, state.domFromDoc)
             }} onPointerDown={() => { selectionFromDom(props.selection, state.docFromDom) }}>
-                <SectionView node={props.root} state={state} depth={0} />
+                <div class=" flex-1 max-w-prose">
+                    <SectionView node={props.root} state={state} depth={0} />
+                </div>
             </div>
         </>
     )
@@ -66,6 +81,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     let [done, setDone] = createSignal(node.has('done'))
     let [due, setDue] = createSignal<String | null>(node.get('~')?.toString() ?? null)
     let [archive, setArchive] = createSignal(node.has('r'))
+
 
 
     let [hidden, setHidden] = createSignal(false)
@@ -87,11 +103,15 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
     return (
         <Show when={!archive() || archiveView()}>
-            <div ref={s} class="p-2 flex flex-col gap-2" classList={{ border: props.depth > 0, done: done(), archive: archive() }}>
+            <div ref={s} class="m-1 flex flex-col gap-2" classList={{
+                border: props.depth > 0,
+                'text-green-500': done(),
+                'text-blue-500': archive()
+            }}>
                 <Show when={due()}>
-                    <ScheduleView s={due()} />
+                    <ScheduleView node={node} />
                 </Show>
-                <div class="flex gap-1">
+                <div class="flex gap-1 font-bold">
                     <button class="block-button" style={props.depth === 0 ? "color: lightgrey" : ""} contentEditable={false} onpointerdown={(e) => dragSection(e, props.node, props.state)} >#</button>
                     <TextView node={props.node.get(TEXT)} state={props.state} tag={`h${props.depth + 1}`} />
                 </div>
@@ -139,8 +159,11 @@ export const ContentView: Component<{ node: Y.Array<any>, state: EditorState }> 
                         <Match when={item.has(TEXT)}>
                             <ParagraphView node={item} state={props.state} />
                         </Match>
-                        <Match when={item.has(HEADER)}>
+                        <Match when={item.has('header')}>
                             <TableView node={item} state={props.state} />
+                        </Match>
+                        <Match when={item.has('S')}>
+                            <StepSequencer node={item} />
                         </Match>
                     </Switch>
                 }
@@ -148,7 +171,6 @@ export const ContentView: Component<{ node: Y.Array<any>, state: EditorState }> 
         </>
     )
 }
-
 
 
 
@@ -174,12 +196,11 @@ export const ParagraphView: Component<{ node: Y.Map<any>, state: EditorState }> 
     })
 
     return (
-        <div class="flex flex-col gap-1" classList={{ done: done() }}>
+        <div class="flex flex-col gap-1" classList={{ 'text-green-500': done() }}>
 
-            <div class="flex gap-1">
-                <button class="block-button" contentEditable={false} onpointerdown={(e: PointerEvent) => { dragSection(e, props.node, props.state) }}>{PARAGRAPH_HANDLE}</button>
+            <div class="flex flex-col">
+                <button class="h-4 bg-screentone-59" contentEditable={false} onpointerdown={(e: PointerEvent) => { dragSection(e, props.node, props.state) }}></button>
                 <TextView node={props.node.get(TEXT)} state={props.state} tag="p" />
-
             </div>
 
             <Show when={hasContent()}>
@@ -224,63 +245,16 @@ export const TextView: Component<{ node: Y.Text | Y.XmlText, state: EditorState,
     return el
 }
 
-export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (props) => {
-    let node = props.node
 
-    let [header, setHeader] = createSignal(node.get(HEADER).toArray())
-    let [rows, setRows] = createSignal(node.get(ITEMS).toArray())
 
-    let f = () => { setHeader(node.get(HEADER).toArray()) }
-    let g = () => { setRows(node.get(ITEMS).toArray()) }
-
-    node.get(HEADER).observe(f)
-    node.get(ITEMS).observe(g)
-
-    onCleanup(() => {
-        node.get(HEADER).unobserve(f)
-        node.get(ITEMS).unobserve(g)
-    })
+const ScheduleView: Component<{ node: Y.Map<any> }> = (props) => {
+    let [open, setOpen] = createSignal(false)
 
     return (
-        <div class="block-container">
-            <button class="block-button" contentEditable={false} onpointerdown={(e: PointerEvent) => { dragSection(e, props.node, props.state) }}>{TABLE_HANDLE}</button>
-            <div style={{
-                'font-size': 'smaller',
-                'border-left': '1px solid lightgrey',
-                'border-top': '1px solid lightgrey',
-                'display': 'grid',
-                "grid-template-columns": `repeat(${header().length}, fit-content(100%))`,
-            }}>
-                <For each={header()}>
-                    {(item) =>
-                        <div class="p-1 border-b border-r">
-                            <TextView node={item.get('name') as Y.Text} state={props.state} tag="strong" />
-                        </div>}
-                </For>
-                <For each={rows()}>
-                    {(item) => <For each={header()}>{(header) =>
-                        <div class="p-4 border-t border-l">
-                            <TextView node={item.get(header.get('id')) as Y.Text} state={props.state} tag="span" />
-                        </div>}
-                    </For>}
-                </For>
-            </div>
-        </div>
-    )
-}
-
-const ScheduleView: Component<{ s: string }> = (props) => {
-
-
-    return (
-        <div contenteditable={false} style={{
-            'font-size': 'x-small',
-            'height': '0.5rem',
-            'margin-left': '1.22rem',
-            'align-content': 'middle'
-        }}>
-            {props.s}
-
+        <div contenteditable={false} onClick={() => { setOpen(true) }} class="text-xs text-gray-5">
+            <Show when={open()} fallback={props.node.get('~').toString()}>
+                <Picker node={props.node} setOpen={setOpen} />
+            </Show>
         </div>
     )
 }

@@ -1,7 +1,9 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
+import {paste} from './paste'
 
 import { createTable } from './table'
+import { t } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
 
 // paragraphs and sections
 export const TEXT = '!'
@@ -26,6 +28,19 @@ export const CAPTION = 'k'
 export const CONTAINER = 'C' // contains several content things of the same type
 export const IMAGE = 'I'
 export const VIDEO = 'V'
+export const STEPSEQUENCER = 'S'
+
+
+export const insertSS = (s : Sel) => {
+    if (s.focus) return null
+    let m = new Y.Map()
+    m.set('S', '')
+    m.set('d', Y.Array.from(Array(16*8).fill(false)))
+
+    let p = s.node.parent
+    let i = p.parent.toArray().indexOf(p)
+    p.parent.insert(i+1, [m])
+}
 
 export const createParagraph = (text: string): [Y.Map<any>, Y.Text] => {
     let f = new Y.Text(text)
@@ -336,6 +351,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'insertParagraph':
+            // lists
             if (s.node.length === 0 && s.node.parent.has(TEXT) && !s.node.parent.has(CHILDREN) && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent)+1) && !s.node.parent.parent.parent.has(CHILDREN)) {
                 let [n,f] = createParagraph('')
                 let p = s.node.parent
@@ -349,6 +365,22 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
                     pp.parent.insert(pp.parent.toArray().indexOf(pp)+1,[n])
                 })
 
+            } else if (s.node.parent.has('name')) {
+                let newRow = new Y.Map()
+                s.node.parent.parent.parent.get('items').get(0).forEach((v,k) => {
+                    newRow.set(k, new Y.Text(''))
+                })
+                s.node.parent.parent.parent.get('items').unshift([newRow])
+                
+
+            } else if (s.node.parent.parent.parent.has('items')) {
+                let index = s.node.parent.parent.toArray().indexOf(s.node.parent)
+                let newRow = new Y.Map()
+                s.node.parent.parent.get(0).forEach((v,k) => {
+                    newRow.set(k, new Y.Text(''))
+                })
+                s.node.parent.parent.insert(index+1, [newRow])
+
             } else {
                 insertParagraph(s)
             }
@@ -357,6 +389,10 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
         //     console.log('replaceText', e)
         //     insertText(s, e.data!)
         //     break
+        case 'insertFromPaste':
+            console.log('paste', e)
+            paste(s, e)
+            break   
         default:
             break
     }
@@ -385,10 +421,13 @@ export const keydownHandler = (e: KeyboardEvent, s: Sel) => {
             break
         case e.key === '1' && e.ctrlKey:
             e.preventDefault()
-            // insertContent(s, createTable)
+            insertContent(s, ...createTable(''),true)
             break
         case e.key === '2' && e.ctrlKey:
             toggleDone(s)
+            break
+        case e.key === '3' && e.ctrlKey:
+            insertSS(s)
             break
         case e.key === 'b' && e.ctrlKey:
             e.preventDefault()

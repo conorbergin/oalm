@@ -14,6 +14,27 @@ i       items           table items
 
 # Task managment
 
+- TODO -> a thing which needs to marked done and has no explicit deadline
+- EVENT -> a thing which needs to be attended
+   - a holiday would contain subevents events
+   - todos could be done on holiday ? availability would need to be set
+   - a dentist appointment could not contain smaller events
+- JOURNAL -> notes can be added to the node content
+
+how do we handle todo lists? all items marked done when done - if any items are marked done then a counter is displayed at the root node
+
+- shopping list [5/7] - can also be tracked in the agenda
+   [] bread
+   [] eggs
+   [x] things 
+   [x] things 
+   [x] things 
+   [x] things 
+   [x] things 
+
+
+maybe subevents have to be children on the event which they are on, so if you work 8hrs a day, only events in the work folder can be done during this time. A Tag system might be better bc you could do your taxes on holiday for instance
+
 The too simplist task management atoms/labels are todos and due dates. Due dates are things which must happen before a date, because of external contracts, and todos have no set date, but shoudl indicate a priority. In the GTD system the priority is indicated by a vague time, such as NEXT, SOON, SOMEDAY. These could be interspersed with true dates, SOON could mean in a week or in 3 months depending on the number and predicted duration of the tasks. THe final goal would be an autmatically generated, timeboxed schedule that takes a todo list/calandar as input.
 
 What are the minimum requirements to achieve such a thing? Can we extend this system to multiple people?

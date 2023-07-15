@@ -4,8 +4,16 @@ module.exports = {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    fontFamily: {
+      'body': ['InputSans', 'sans-serif']
+    },
+
+    extend: {
+      gridTemplateColumns: {
+        // 24 column grid
+        '16': 'repeat(16, minmax(0, 1fr))',
+      }
+    },
   },
   plugins: [],
 }
-
