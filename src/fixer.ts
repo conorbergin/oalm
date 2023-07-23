@@ -5,6 +5,11 @@ import { TEXT, CONTENT, CHILDREN, createParagraph } from './input'
 
 export const fixer = (root : Y.Map<any>) => {
 
+  if (!root.get('id')) {
+    console.log('fixer: no id')
+    root.set('id', crypto.randomUUID())
+  }
+
 
   if (!root.get(TEXT)) {
     console.log('fixer: no heading')

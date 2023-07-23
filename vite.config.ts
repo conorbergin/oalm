@@ -9,13 +9,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions:{enabled:true},
       manifest: {
-        name: 'Infinite Notebook',
-        short_name: 'Infinite Notebook',
-        description: 'A notebook that never runs out of pages',
+        name: 'Pernot',
+        short_name: 'Pernot',
+        description: 'Persisitent Encrypted Notebooks',
         theme_color: '#ffffff',
         icons: [
           {
-            src: '/icon.png',
+            src: './src/assets/icon.png',
             sizes: '192x192',
             type: 'image/png',
           },

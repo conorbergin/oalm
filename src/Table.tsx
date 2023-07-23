@@ -32,7 +32,7 @@ export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (p
 
     return (
         <div class="flex flex-col">
-            <div class="bg-gray-600 text-white text-sm">
+            <div >
                 <button onclick={() => {setGraph(g => !g) }}>graph</button>
 
             </div>

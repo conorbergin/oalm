@@ -13,50 +13,9 @@
     /* caret-color: transparent; */
 }
 
-.bg-screentone-1 {
-    background-image: url("/screentones/cmkosemen_screentones_001.png");
-    background-size: 1000px;
-}
-.bg-screentone-2 {
-    background-image: url("/screentones/cmkosemen_screentones_002.png");
-}
-.bg-screentone-3 {
-    background-image: url("/screentones/cmkosemen_screentones_003.png");
-}
-.bg-screentone-4 {
-    background-image: url("/screentones/cmkosemen_screentones_004.png");
-
-}
-.bg-screentone-5 {
-    background-image: url("/screentones/cmkosemen_screentones_005.png");
-}
-.bg-screentone-6 {
-    background-image: url("/screentones/cmkosemen_screentones_006.png");
-}
-.bg-screentone-7 {
-    background-image: url("/screentones/cmkosemen_screentones_007.png");
-}
-.bg-screentone-8 {
-    background-image: url("/screentones/cmkosemen_screentones_008.png");
-}
-.bg-screentone-9 {
-    background-image: url("/screentones/cmkosemen_screentones_009.png");
-
-}
-
-.bg-screentone-59 {
-    background-image: url("/screentones/cmkosemen_screentones_059.png");
-    background-size: 2000px;
-}
-.bg-screentone-63 {
-    background-image: url("/screentones/cmkosemen_screentones_063.png");
-    background-size: 1000px;
-}
-
 
 
 .editor {
-    font-family: 'InputSans', serif;
 
 
     outline: none;

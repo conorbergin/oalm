@@ -1,124 +1,145 @@
-import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect } from 'solid-js'
-import { createStore } from 'solid-js/store'
+import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter } from 'solid-js'
 
-import { Sel } from './selection'
 
+import { deriveUser, getKeychain, putKeychain, hello, User, authenticate, createNotebook, register, createKeychain } from './service'
+
+import { Portal } from 'solid-js/web'
+import { CalendarView } from './Calendar'
+import { Pernot } from './Pernot'
 
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
-import { WebrtcProvider } from 'y-webrtc'
+import { createTable } from './table'
 
-import { fixer } from './fixer'
-import { EditorState } from './editorstate'
-
-import { EditorView } from './Editor'
-import { addSection, toggleDone, toggleArchive } from './input'
-
-import { ToolBar } from './ToolBar'
-import { AgendaView } from './Agenda'
-import { DTPicker } from './DatePicker'
-import { Portal } from 'solid-js/web'
-import { CalendarView } from './Calendar'
-import { StepSequencer } from './StepSequencer'
-import { Pernot } from './Pernot'
-
-
-const myDoc = new Y.Doc()
-const indexeddbProvider = new IndexeddbPersistence('my-room-name2', myDoc)
-const webrtcProvider = new WebrtcProvider('my-room-name2', myDoc)
-
-
-// const hexKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16))).map(byte => byte.toString(16).padStart(2, '0')).join('')
-// console.log(hexKey())
-const root = myDoc.getMap('root')
-
-const undoManager = new Y.UndoManager(root)
-export const [path, setPath] = createSignal([root])
-
-export const [hack, setHack] = createSignal(false)
-
-export const [archiveView, setArchiveView] = createSignal(false)
-export const [collapsed, setCollapsed] = createSignal([])
-
-
-
-
-const myroot = () => path().at(-1)
-
-export const BreadCrumbs: Component = () => {
-    return (
-        <div>
-            <For each={path().slice(0, -1)}>
-                {(item, index) =>
-                    <>
-                        {index() > 0 ? null : '/'}
-                        <button onClick={() => { setPath(path => path.slice(0, index() + 1)); setHack(h => !h) }}>{item.get('heading').toString()}</button>
-                        /
-                    </>
-                }
-            </For>
-        </div>
-    )
+const createYJSMapSignal = (map: Y.Map<any>) => {
+    const [signal, setSignal] = createSignal(Array.from(map.entries()))
+    let f = () => setSignal(Array.from(map.entries()))
+    map.observe(f)
+    onCleanup(() => {
+        map.unobserve(f)
+    })
+    return signal
 }
 
-const AccountView: Component = () => {
-    return (
-        <div>
-            <button onClick={() => { }}>Sign out</button>
-        </div>
-    )
-}
+export const UserView = (props: { user: User }) => {
 
-export const App: Component = () => {
+    let kcdoc = new Y.Doc()
+    let idbprov = new IndexeddbPersistence(props.user.userid, kcdoc)
+    let [keychain, setKeychain] = createSignal<any>(null)
 
-    const [synced, setSynced] = createSignal(false)
-    const [agenda, setAgenda] = createSignal(false)
+    const [doc, setDoc] = createSignal(null)
     const [screen, setScreen] = createSignal(0)
-    const [scroll, setScroll] = createSignal(0)
-    const [showDTPicker, setShowDTPicker] = createSignal(false)
-
-    const [accountView, setAccountView] = createSignal(false)
 
 
+    let f = () => {
+        setKeychain(Array.from(kcdoc.getMap('pernot-keychain').entries()))
+        putKeychain(props.user, kcdoc)
+    }
 
-    createEffect(() => console.log(scroll()))
-
-    indexeddbProvider.on('synced', () => {
-        console.log(root.toJSON())
-
-        fixer(root)
-        setSynced(true)
+    createEffect(() => {
+        getKeychain(props.user).then((k) => {
+            if (k === undefined) throw new Error('Keychain not found')
+            Y.applyUpdate(kcdoc, new Uint8Array(k))
+            kcdoc.getMap('pernot-keychain').observe(f)
+        })
+        onCleanup(() => {
+            kcdoc.getMap('pernot-keychain').unobserve(f)
+        })
     })
 
-    let selection: Sel = { node: root.get('!') as Y.Text, offset: 0, focus: null }
 
     return (
         <>
-            <Show when={synced()}>
-                <div class="flex flex-col fixed w-full h-full">
-                    <div class="p-1 pb-0">
-                        <div class="flex gap-4 text-sm">
-                            <button onClick={() => { setScreen(screen() === 1 ? 0 : 1) }}>Calendar</button>
-                            <button onClick={() => { setAccountView(!accountView()) }}>Account</button>
-                        </div>
-                        <Show when={accountView()}>
-                            <AccountView />
-                        </Show>
+            <div class="flex flex-col fixed w-full h-full">
+                <div class="p-1 pb-0">
+                    <div class="flex gap-4 text-sm">
+                        <button onClick={() => { setScreen(screen() === 1 ? 0 : 1) }}>Calendar</button>
+                        <button onClick={() => { setScreen(screen() === 1 ? 0 : 1) }}>Pernot</button>
                     </div>
-                    <Switch>
-                        <Match when={screen() === 0}>
-                            <Pernot root={myroot()} />
-
-                        </Match>
-                        <Match when={screen() === 1}>
-                            <CalendarView />
-                        </Match>
-                        <Match when={screen() === 2}>
-                            <Pernot root={myroot()} />
-                        </Match>
-                    </Switch>
+                    <Show when={screen() === 0}>
+                        <div class="flex gap-4 text-sm">
+                        </div>
+                    </Show>
                 </div>
-            </Show>
+                <Switch>
+                    <Match when={screen() === 0}>
+                        <Show when={doc()}>
+                            <Pernot doc={doc()!} />
+                        </Show>
+                    </Match>
+                    <Match when={screen() === 1}>
+                        <CalendarView />
+                    </Match>
+                </Switch>
+            </div>
+
         </>
+
+    )
+}
+
+
+export const App: Component = () => {
+
+    const [message, setMessage] = createSignal('')
+    const [login, setLogin] = createSignal(false)
+    const [user, setUser] = createSignal<null | User>(null)
+
+
+
+    let e: HTMLInputElement
+    let p: HTMLInputElement
+    let c: HTMLInputElement
+
+    const handleSubmit = async () => {
+        let user = await deriveUser(e.value, p.value)
+        let resp = await authenticate(user)
+        if (resp.ok) {
+            setUser(user)
+        } else if (resp.status === 404) {
+            p.value = ''
+            setMessage('Wrong password')
+        } else if (resp.status === 401) {
+            p.value = ''
+            setMessage('Email unverified')
+        } else {
+            setMessage('Email sent')
+            let [kc, priv] = await createKeychain(user)
+            let d = new Y.Doc()
+            Y.applyUpdate(d,new Uint8Array(kc))
+            let idbprov = new IndexeddbPersistence(user.userid, d)
+            await idbprov.whenSynced
+            idbprov.destroy()
+            register(user, priv)
+        }
+
+    }
+
+    return (
+        <div >
+            <Switch>
+                <Match when={user() && login()}>
+                    <button onClick={() => { setUser(null); setLogin(false) }}>Sign Out</button>
+                    <UserView user={user()!} />
+                </Match>
+                <Match when={login()}>
+                    <button onClick={() => { setLogin(false) }}>Sign Out</button>
+                    <Pernot doc={{id:'default',secret:null}}/>
+                </Match>
+                <Match when={true}>
+                    <div class="flex justify-center pt-12">
+                        <div class="flex flex-col gap-4 w-96" >
+                            <h1 class="text-2xl font-bold">Pernot</h1>
+                            <span >{message()}</span>
+                            <input class="border-b border-black p-2" ref={e} type="email" placeholder="email" />
+                            <input class="border-b border-black p-2" ref={p} type="password" placeholder="password" />
+                            <div class="flex gap-2"><input ref={c} type="checkbox" textContent="save details" />Save data locally (I own this computer)</div>
+                            <button onClick={handleSubmit}>Sign In / Register</button>
+                            <button onClick={() => { setLogin(true) }}>Continue as Guest</button>
+                        </div>
+                    </div>
+                </Match>
+            </Switch>
+        </div>
     )
 }
