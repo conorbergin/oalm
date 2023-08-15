@@ -3,96 +3,30 @@
 @tailwind utilities;
 
 
-:root {
-    /* touch-action: pan-y; */
-
-    --border-color: rgb(112, 179, 164);
-    --background-color: hsl(0, 0%, 100%);
-
-    /* color-scheme: dark light; */
-    /* caret-color: transparent; */
-}
-
-
-
-.editor {
-
-
+[contenteditable] {
     outline: none;
-    overflow-wrap: break-word;
     white-space: pre-wrap;
+    word-wrap: break-word;
     white-space: break-spaces;
-    font-variant-ligatures: none;
-    font-feature-settings: "liga" 0;
 }
 
-/* drag.css */
-.dragging {
-    top: 0;
-    left: 0;
-    width: 100%;
-    /* opacity: 0.5; */
-    /* height: 2rem; */
-    overflow: hidden;
-    pointer-events: none;
+.btn {
+    user-select: none;
     touch-action: none;
-    position: absolute;
-    z-index: 100;
+    /* turn off text selection */
+
+
 }
 
-.drag-shadow {
-    box-sizing: border-box;
-    height: 3rem;
-    border: 1px solid var(--border-color);
-    background: repeating-linear-gradient(45deg,
-            transparent,
-            transparent 10px,
-            var(--border-color) 10px,
-            var(--border-color) 10px);
+.btn::selection {
+    background: transparent;
 }
 
-.drop-target {
-    position: absolute;
-    pointer-events: none;
-    touch-action: none;
-    display: none;
-    opacity: 0.5;
-    /* transition: all 0.1s ease-in-out; */
+button {
+    user-select: none;
+    /* turn off text selection */
 }
 
-.delete-shadow {
-    box-sizing: border-box;
-    opacity: 0.5;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 1.5rem;
-    height: 100vh;
-    border: 2px solid red;
-    background: repeating-linear-gradient(45deg,
-            transparent,
-            transparent 10px,
-            red 10px,
-            red 12px);
-}
-
-.open-shadow {
-    box-sizing: border-box;
-    opacity: 0.5;
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 1.5rem;
-    height: 100vh;
-    border: 2px solid blue;
-    background: repeating-linear-gradient(45deg,
-            transparent,
-            transparent 10px,
-            blue 10px,
-            blue 12px);
-}
-
-.open-shadow:hover,
-.delete-shadow:hover {
-    opacity: 1;
+button::selection {
+    background: transparent;
 }

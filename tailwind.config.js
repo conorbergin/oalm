@@ -5,7 +5,9 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      'body': ['InputSans', 'sans-serif']
+      'body': ['InputSans', 'sans-serif'],
+      'mono': ['InputMono', 'monospace'],
+      'script': ['UnifrakturCook', 'cursive'],
     },
 
     extend: {

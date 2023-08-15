@@ -1,7 +1,14 @@
-import { Accessor, Component, createSignal, For, Setter, Show, Switch, Match, onCleanup } from 'solid-js'
+import { Accessor, Component, createSignal, For, Setter, Show, Switch, Match, onCleanup, createEffect, on, JSXElement } from 'solid-js'
+import { Portal } from 'solid-js/web'
 import * as Y from 'yjs'
 
-import { DateTime, Duration, Interval } from 'luxon'
+
+import { Temporal } from '@js-temporal/polyfill'
+
+import {Dialog} from './Dialog'
+
+
+
 
 const clockFaceRotated = [
   '09', '10', '11', '12', '13', '14', '15',
@@ -27,15 +34,6 @@ const isoDurationString = 'PT3H30M'; // Duration
 const isoIntervalString = '2023-07-05T12:30:00Z/2023-07-06T12:30:00Z'; // Interval
 const isoDateTimeString = '2023-07-05T12:30:00Z'; // DateTime
 
-const luxnParseIso = (iso: string): DateTime | Interval | Duration => {
-  if (iso.includes('/')) {
-    return Interval.fromISO(iso)
-  } else if (iso.includes('P')) {
-    return Duration.fromISO(iso)
-  } else {
-    return DateTime.fromISO(iso)
-  }
-}
 
 /*
 NEXT : a task of high importance with no explitit deadline
@@ -48,144 +46,162 @@ maybe we need two separate systems.
 A taks can have a vague date and a vague duration, its a todo item
 A task can have an explicit date and a vague duration, its a deadline -- the vague duration should be a child of the explicit date
 A task can have an explicit date and an explicit duration, its an event or appointment ( how do we represent availability? for these event?)
+
+Assignment:
+{
+  due: 28th,
+  dependancies: [
+    deliverable_A: {
+      due: 20th,
+      dependancies: [
+        Finish research 1wk,
+        clean up formatting 5hrs,
+        write conclusion 10hrs,
+    }
+}
+
+
+{ event
+  begin : 20th,
+  end: 28th,
+  dependancies: [
+
+
+}
 */
 
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
-export const Picker: Component<{ setOpen: Setter<boolean>, node: Y.Map<any> }> = (props) => {
+export const DatePicker: Component<{ date: Temporal.PlainDate, node: Y.Map<any> }> = (props) => {
+  const now = () => Temporal.Now.plainDateISO()
 
-  let node = props.node
-  let vagueStates = ['NEXT', 'SOON', 'SOMEDAY']
-  let [now, setNow] = createSignal(DateTime.now())
-
-
-
-  let [luxn, setLuxn] = createSignal(luxnParseIso(node.get('~').toString()))
-
-  let [vague, setVague] = createSignal(null)
-
-  let [begin, setBegin] = createSignal(DateTime.now())
-  let [end, setEnd] = createSignal(null)
-
-  if (node.has('~') && vagueStates.includes(node.get('~').toString())) {
-    setVague(node.get('~').toString())
-  } else {
-
-  }
-
-  let updateNow = setInterval(() => setNow(DateTime.now()), 30000)
-  onCleanup(() => clearInterval(updateNow))
-
-
+  const [window, setWindow] = createSignal(props.date)
   return (
     <div class="text-gray-600">
-      <div class="flex gap-2 text-base items-center">
-        <For each={vagueStates}>
-          {(state) => (<button classList={{ 'text-black font-bold': vague() === state }} onClick={() => setVague(state)}>{state}</button>)}
-        </For>
-        <button onClick={() => props.setOpen(false)}>close</button>
-
-      </div>
-      <div class="flex gap-2 text-base items-center">
-        <div>{begin().toLocaleString({ weekday: 'short', day: 'numeric' })}</div>
-        <div class="flex flex-col">
-          <button onClick={() => setBegin(begin().plus({ months: 1 }))}>^</button>
-          {begin().toLocaleString({ month: 'short' })}
-          <button onClick={() => setBegin(begin().minus({ months: 1 }))}>v</button>
-        </div>
-        <div class="flex flex-col">
-          <button onClick={() => setBegin(begin().plus({ years: 1 }))}>^</button>
-          {begin().toLocaleString({ year: 'numeric' })}
-          <button onClick={() => setBegin(begin().minus({ years: 1 }))}>v</button>
-        </div>
-
-        <Show when={end()} fallback={<button onClick={() => setEnd(begin())}>+ end date</button>}>
-          --
-          <div>{end().toLocaleString({ weekday: 'short', day: 'numeric' })}</div>
-          <div class="flex flex-col">
-            <button onClick={() => setEnd(end().plus({ months: 1 }))}>^</button>
-            {end().toLocaleString({ month: 'short' })}
-            <button onClick={() => setEnd(end().minus({ months: 1 }))}>v</button>
-          </div>
-          <div class="flex flex-col">
-            <button onClick={() => setEnd(end().plus({ years: 1 }))}>^</button>
-            {end().toLocaleString({ year: 'numeric' })}
-            <button onClick={() => setEnd(end().minus({ years: 1 }))}>v</button>
-          </div>
-          <button onClick={() => setEnd(null)}>x</button>
-
-
-        </Show>
-
-
-      </div>
-      <div class="flex gap-4 text-base text-black/50">
+      <div>{props.date.toLocaleString('en-UK', { weekday: 'short', day: 'numeric', month: 'short', })}</div>
+      <div class="flex flex-col gap-4 text-base text-black/50">
         <div>
-          {/* <div class="grid grid-cols-6 gap-x-1">
+          <div class="grid grid-cols-6 gap-x-1">
             <For each={[...Array(12).keys()]}>
               {(i) => <button onClick={() => {
-                setWindow(window().set({ month: i + 1 }))
+                setWindow(window().with({ month: i + 1 }))
               }} classList={{
                 'border': i + 1 === now().month,
                 underline: i + 1 === window().month,
-                'font-bold text-black': i + 1 === begin()?.month,
-              }}>{DateTime.fromObject({ month: i + 1 }).toLocaleString({ month: 'short' })}</button>}
+                'font-bold text-black': i + 1 === props.date.month,
+              }}>{months[i]}</button>}
             </For>
-          </div> */}
+          </div>
 
-          <div class="grid grid-cols-7">
-            <For each={[...Array(begin().startOf('month').weekday - 1).keys()]}>
-              {(i) => <div onClick={() => { }}></div>}
+          <div class="grid grid-cols-7 gap-1">
+            <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
+              {(i) => <div />}
             </For>
-            <For each={[...Array(begin().daysInMonth).keys()]}>
+            <For each={[...Array(window().daysInMonth).keys()]}>
               {(i) =>
                 <button classList={{
-                  'border': (i === now().day - 1) && (begin().month === now().month) && (begin().year === now().year),
-                  'font-bold text-black': (i === begin()?.day - 1),
+                  'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
+                  'font-bold text-black': (i === props.date.day - 1),
                 }} onClick={() => {
-                  setBegin(DateTime.fromObject({ day: i + 1, month: begin().month, year: begin().year }))
+                  props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
                 }}>{`${i + 1}`.padStart(2, '0')}</button>}
             </For>
           </div>
         </div>
-        <div class="grid grid-cols-7 gap-1">
-          <For each={clockFaceRotated}>
-            {(c, index) =>
-              <Switch fallback={<div />}>
-                <Match when={clockFaceRotatedMask[index()] === 'h'}>
-                  <button classList={{ 'border': (now().hour === parseInt(c)) && (begin().month === now().month) && (begin().day === now().day) && (begin().year === now().year) }} onClick={() => { }}>{c}</button>
-                </Match>
-                <Match when={clockFaceRotatedMask[index()] === 'm'}>
-                  <button classList={{ 'text-red-600': now().minute === c }} onClick={() => { }}>{c}</button>
-                </Match>
-              </Switch>
-            }
-          </For>
-        </div>
       </div>
     </div>
   )
 }
 
-export const DTPicker: Component<{ node: Y.Map<any>, setShow: Setter<boolean> }> = (props) => {
+export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
+  const [hasDT, setHasDT] = createSignal(props.node.has('~'))
+
+  const f = () => setHasDT(props.node.has('~'))
+  props.node.observe(f)
+  onCleanup(() => props.node.unobserve(f))
   return (
-    <div style={{
-      position: 'fixed',
-      display: 'flex',
-      "justify-content": 'center',
-      width: '100vw',
-      height: '100vh',
-      top: 0,
-      left: 0,
-      'background-color': 'rgba(0,0,0,0.5)',
-    }} onClick={() => props.setShow(false)}>
-      <div style={{
-        height: 'fit-content',
-        background: 'white',
-        padding: '1rem',
-        margin: '4rem',
-      }} onClick={(e) => e.stopPropagation()}>
-        <Picker node={props.node} />
-      </div>
+    <Show when={hasDT()} fallback={
+      <button class="text-gray-300" onClick={() => {
+        props.node.set('~', Temporal.Now.plainDateISO().toString())
+      }}>set</button>
+    }>
+      <DTNode node={props.node} />
+    </Show>
+  )
+}
+
+
+
+
+export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
+
+  const [show, setShow] = createSignal(false)
+  const [dt, setDT] = createSignal(Temporal.PlainDate.from(props.node.get('~')))
+  const [done, setDone] = createSignal(false)
+
+  const [hasChildren, setHasChildren] = createSignal(props.node.has('$'))
+
+
+  const f = () => {
+    setDT(Temporal.PlainDate.from(props.node.get('~')))
+    setDone(props.node.get('done').toString() === 'true')
+    setHasChildren(props.node.has('$'))
+  }
+
+
+  props.node.observe(f)
+  onCleanup(() => props.node.unobserve(f))
+
+  return (
+    <div class="font-mono italic flex gap-2 align-top">
+      <button class="text-green-700 italic" classList={{
+        'line-through text-gray-500': done(),
+      }} onClick={() => setShow(true)}>
+        {dt().toLocaleString('default', {day: 'numeric', month: 'short' })}
+        <Show when={!done() && hasChildren()}>
+          <span class="text-gray-500">
+
+          <DepTracker node={props.node} />
+          </span>
+        </Show>
+      </button>
+      <Show when={show()}>
+        <Dialog setShow={setShow}>
+          <DatePicker date={Temporal.PlainDate.from(dt())} node={props.node} />
+        </Dialog>
+      </Show>
     </div>
   )
 }
+
+export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
+
+  const [children, setChildren] = createSignal(props.node.get('&').toArray())
+
+  const [numerator, setNumerator] = createSignal(0)
+  const [denominator, setDenominator] = createSignal(0)
+
+  const f = () => {
+    setChildren(props.node.get('$').toArray())
+    let n = 0, d = 0
+    props.node.get('$').forEach((dep) => {
+      if (dep.has('~')) {
+        d += 1
+        if (dep.has('done')) {
+          n += 1
+        }
+      }
+    })
+    setNumerator(n)
+    setDenominator(d)
+  }
+
+  f()
+
+  props.node.observeDeep(f)
+  onCleanup(() => props.node.unobserveDeep(f))
+
+  return denominator() > 0 ? `[${numerator()}/${denominator()}]` : ''
+}
+
+

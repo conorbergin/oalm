@@ -8,7 +8,7 @@ import { basicSetup, minimalSetup } from "codemirror";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { javascript } from '@codemirror/lang-javascript'
-import { markdown } from '@codemirror/lang-markdown';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 
 import { onMount, onCleanup, Component, Ref, on } from 'solid-js'
 import { NodeBar } from './Toolbars';
@@ -16,6 +16,8 @@ import { NodeBar } from './Toolbars';
 import { tags } from "@lezer/highlight"
 import { HighlightStyle } from "@codemirror/language"
 import {syntaxHighlighting} from "@codemirror/language"
+
+import * as Icons from './Icons'
 
 // import * as random from 'lib0/random'
 
@@ -42,12 +44,18 @@ export const userColor = usercolors[Math.floor(Math.random() * 100) % usercolors
 // })
 
 
+
 export const TextNode: Component<{ ytext: Y.Text, parent: Y.Array<any>, index: number }> = (props) => {
 
     return (
-        <div>
-            <NodeBar parent={props.parent} index={props.index} />
+        <div class="flex items-start gap-1">
+            <button onClick={() => {}} >
+                <Icons.Drag2 />
+            </button>
+            <div class="rounded  bg-stone-100 flex-1 overflow-scroll">
+
             <Codemirror ytext={props.ytext} />
+            </div>
         </div>
     )
 }
@@ -60,8 +68,11 @@ export const Codemirror: Component<{ ytext: Y.Text }> = (props) => {
 
 
     const myHighlightStyle = HighlightStyle.define([
-        { tag: tags.heading, color: "#f58", fontWeight: "bold" },
-        { tag: tags.comment, color: "#f5d", fontStyle: "italic" }
+        { tag: tags.heading, color: "#069", fontWeight: "bold" },
+        { tag: tags.strong, fontWeight: "bold" },
+        { tag: tags.emphasis, fontStyle: "italic" },
+        { tag: tags.link, color: "#1c3aff" },
+        { tag: tags.strikethrough, color: "#993a00" },
     ])
 
 
@@ -74,8 +85,11 @@ export const Codemirror: Component<{ ytext: Y.Text }> = (props) => {
             state: EditorState.create({
                 doc: ytext.toString(),
                 extensions: [
+                    EditorView.lineWrapping,
                     minimalSetup,
-                    markdown(),
+                    markdown({
+                        base: markdownLanguage,
+                    }),
                     yCollab(ytext, null, { undoManager }),
                     syntaxHighlighting(myHighlightStyle)
                 ]
@@ -87,5 +101,5 @@ export const Codemirror: Component<{ ytext: Y.Text }> = (props) => {
         view && view.destroy()
 
     })
-    return <div ref={e}></div>
+    return <div  ref={e}></div>
 }

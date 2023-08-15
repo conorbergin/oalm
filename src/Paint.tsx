@@ -1,86 +1,63 @@
 import * as Y from "yjs"
-import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack, onCleanup, onMount } from "solid-js"
-import { NodeBar } from "./Toolbars";
+import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack, onCleanup, onMount, Show } from "solid-js"
 import * as Icons from "./Icons";
 
+import { drag, EditorState } from './Editor'
 
-function findPointWithDistanceFromPoints(a, b, c, d) {
-    // Calculate vectors AB and BC
-    const AB = { x: b.x - a.x, y: b.y - a.y };
-    const BC = { x: c.x - b.x, y: c.y - b.y };
 
-    // Normalize AB and BC
-    const ABNormalized = normalizeVector(AB);
-    const BCNormalized = normalizeVector(BC);
 
-    // Calculate the bisector vector
-    const bisector = {
-        x: ABNormalized.x + BCNormalized.x,
-        y: ABNormalized.y + BCNormalized.y,
-    };
+import { getStroke } from 'perfect-freehand'
+import { Dialog } from "./Dialog";
+const average = (a, b) => (a + b) / 2
 
-    // Normalize the bisector
-    const bisectorNormalized = normalizeVector(bisector);
+function getSvgPathFromStroke(points: Array<[number, number]>) {
+    const len = points.length
 
-    // Calculate the point P on the bisector that is distance d away from B
-    const px = b.x + bisectorNormalized.x * d;
-    const py = b.y + bisectorNormalized.y * d;
-
-    return { x: px, y: py };
-}
-function moveMiddlePoint(a, b, c, d) {
-
-    // Calculate the direction vector of the road
-    const direction = { x: c.x - a.x, y: c.y - a.y };
-    const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-    const normalizedDirection = { x: direction.x / length, y: direction.y / length };
-
-    // Calculate the perpendicular vector
-    const perpendicular = { x: -normalizedDirection.y, y: normalizedDirection.x };
-
-    // Calculate the displacement
-    const displacement = { x: perpendicular.x * d, y: perpendicular.y * d };
-
-    // Move the middle point
-    const movedB = { x: b.x + displacement.x, y: b.y + displacement.y };
-
-    // Return the updated points
-    return movedB
-}
-
-// Helper function to normalize a vector
-function normalizeVector(vector) {
-    const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
-    return { x: vector.x / length, y: vector.y / length };
-}
-const renderPath = (path: { x: number, y: number }[]) => path.length > 1 ? `M ${path.map(({ x, y }) => `${x} ${y}`).join(' L ')}` : `M ${path[0].x} ${path[0].y} L ${path[0].x} ${path[0].y}`
-
-const renderPath2 = (path: { x: number, y: number }[]) => {
-    let p = path.concat(path.reverse())
-    return p.map((b, index, array) => {
-        if (index === 0) return `M ${b.x} ${b.y}`
-        if (index === array.length - 1) return 'Z'
-        let r = moveMiddlePoint(array[index - 1], b, array[index + 1], 2)
-        if (isNaN(r.x) || isNaN(r.y)) return `L ${b.x} ${b.y}`
-        return `L ${r.x} ${r.y}`
+    if (!len) {
+        return ''
     }
-    ).join(' ')
+
+    const first = points[0]
+    let result = `M${first[0].toFixed(3)},${first[1].toFixed(3)}Q`
+
+    for (let i = 0, max = len - 1; i < max; i++) {
+        const a = points[i]
+        const b = points[i + 1]
+        result += `${a[0].toFixed(3)},${a[1].toFixed(3)} ${average(
+            a[0],
+            b[0]
+        ).toFixed(3)},${average(a[1], b[1]).toFixed(3)} `
+    }
+
+    result += 'Z'
+
+    return result
 }
 
+const useObservedArray = () => {}
+
+export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
 
-export const Paint: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: number }> = (props) => {
+    let s
 
-    let s: SVGSVGElement
+    const [allowTouch, setAllowTouch] = createSignal(false)
+    const [color, setColor] = createSignal('black')
+    const [fill, setFill] = createSignal(false)
+    const [strokeWidth, setStrokeWidth] = createSignal(10)
+    const [erase, setErase] = createSignal(false)
+    const [locked, setLocked] = createSignal(true)
 
-    let [allowTouch, setAllowTouch] = createSignal(false)
-    let [color, setColor] = createSignal('red')
-    let [fill, setFill] = createSignal(false)
-    let [strokeWidth, setStrokeWidth] = createSignal(2)
-    let [erase, setErase] = createSignal(false)
+    const [showDialog, setShowDialog] = createSignal(null)
 
-    let dom2doc = new Map<SVGElement, Y.Map<any>>()
 
+    let [data, setData] = createSignal([])
+
+    const f = () => setData(props.node.get('paint').toArray())
+
+    f()
+    props.node.observeDeep(f)
+    // onCleanup(() =>  props.node.get('paint').unobserve(f))
 
 
 
@@ -88,6 +65,7 @@ export const Paint: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: n
 
         let id = e.pointerId
         if (!allowTouch() && e.pointerType === 'touch') return
+        let pressure = e.pressure ? true : false
 
         let t = s.getScreenCTM()?.inverse()
 
@@ -95,18 +73,18 @@ export const Paint: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: n
         pt.x = e.clientX
         pt.y = e.clientY
         pt = pt.matrixTransform(t)
-        let candidate = [{ x: pt.x, y: pt.y }]
-        props.node.get('data').push([candidate])
+        let candidate = { points: [[pt.x, pt.y, e.pressure]], color: color(), size: strokeWidth() }
+        props.node.get('paint').push([candidate])
 
         const handlePointerMove = (e: PointerEvent) => {
             if (e.pointerId !== id) return
             pt.x = e.clientX
             pt.y = e.clientY
             pt = pt.matrixTransform(t)
-            candidate.push({ x: pt.x, y: pt.y })
-            Y.transact(props.node.get('data'), () => {
-                props.node.get('data').delete(props.node.get('data').toArray().indexOf(candidate))
-                props.node.get('data').push([candidate])
+            candidate.points.push([pt.x, pt.y, e.pressure])
+            Y.transact(props.node.get('paint'), () => {
+                props.node.get('paint').delete(props.node.get('paint').toArray().indexOf(candidate))
+                props.node.get('paint').push([candidate])
             }
             )
         }
@@ -124,17 +102,21 @@ export const Paint: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: n
     function getObjectUnderCursor(event: PointerEvent) {
         let result = []
         let t = document.elementFromPoint(event.clientX, event.clientY)
-        if (t instanceof SVGElement && dom2doc.has(t)) {
-            let d = dom2doc.get(t)
-            props.node.get('data').delete(props.node.get('data').toArray().indexOf(d))
+        if (t) {
+            let n = parseInt(t.id)
+            if (!isNaN(n) && props.node.get('paint').get(n)) {
+                props.node.get('paint').delete(n)
+            }
 
         }
 
         const handlePointerMove = (e: PointerEvent) => {
             t = document.elementFromPoint(e.clientX, e.clientY)
-            if (t instanceof SVGElement && dom2doc.has(t)) {
-                let d = dom2doc.get(t)
-                props.node.get('data').delete(props.node.get('data').toArray().indexOf(d))
+            if (t) {
+                let n = parseInt(t.id)
+                if (!isNaN(n) && props.node.get('paint').get(n)) {
+                    props.node.get('paint').delete(n)
+                }
             }
         }
 
@@ -146,74 +128,112 @@ export const Paint: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: n
         document.addEventListener('pointerup', handlePointerUp)
     }
 
-    const svgStroke = (elem) => {
-        let el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        el.setAttribute('d', renderPath2(elem))
-        el.setAttribute('stroke', 'none')
-        el.setAttribute('fill', 'black')
-        // el.setAttribute('filter', 'url(#noise2)')
-        return el
+    // onMount(() => {
+    //     props.node.forEach((elem) => {
+    //         let el = svgLine(elem)
+    //         s.insertAdjacentElement('beforeend', el)
+    //         dom2doc.set(el, elem)
+    //     })
+    //     props.node.observe((e) => {
+    //         let arr = Array.from(s.children)
+    //         let counter = 0
+    //         e.changes.delta.forEach((change) => {
+    //             if (change.retain) {
+    //                 counter += change.retain
+    //             } else if (change.delete) {
+    //                 for (let i = 0; i < change.delete; i++) {
+    //                     let el = arr[counter + i]
+    //                     dom2doc.delete(el)
+    //                     el.remove()
+    //                 }
+    //             } else if (change.insert) {
+    //                 for (let i = 0; i < change.insert.length; i++) {
+    //                     if (counter === 0) {
+    //                         let el = svgLine(e.target.get(0))
+    //                         s.insertAdjacentElement('afterbegin', el)
+    //                         dom2doc.set(el, e.target.get(0))
+    //                     } else {
+    //                         let el = svgLine(e.target.get(counter))
+    //                         arr[counter - 1].insertAdjacentElement('afterend', el)
+    //                         dom2doc.set(el, e.target.get(counter))
+    //                     }
+    //                     counter += 1
+    //                 }
+    //             }
+    //         })
+    //     })
+    // })
+
+    const handleCanvasResize = (e: PointerEvent) => {
+        let initialY = e.clientY
+        let initialHeight = s.getBoundingClientRect().height
+        const handlePointerMove = (e: PointerEvent) => {
+            let dy = e.clientY - initialY
+            if (initialHeight + dy < 100) return
+            if (initialHeight + dy > 1000) return
+            s.style.height = `${initialHeight + dy}px`
+        }
+        const handlePointerUp = (e: PointerEvent) => {
+            document.removeEventListener('pointermove', handlePointerMove)
+            document.removeEventListener('pointerup', handlePointerUp)
+        }
+        document.addEventListener('pointermove', handlePointerMove)
+        document.addEventListener('pointerup', handlePointerUp)
     }
 
-    const svgLine = (elem) => {
-        let el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-        el.setAttribute('d', renderPath(elem))
-        el.setAttribute('stroke', 'black')
-        el.setAttribute('fill', 'none')
-        el.setAttribute('stroke-width', '8')
-        el.setAttribute('stroke-linecap', 'round')
-        el.setAttribute('stroke-linejoin', 'round')
-        return el
-    }
-
+    let d
 
     onMount(() => {
-        props.node.get('data').forEach((elem) => {
-            let el = svgLine(elem)
-            s.insertAdjacentElement('beforeend', el)
-            dom2doc.set(el, elem)
-        })
-        props.node.get('data').observe((e) => {
-            let arr = Array.from(s.children)
-            let counter = 0
-            e.changes.delta.forEach((change) => {
-                if (change.retain) {
-                    counter += change.retain
-                } else if (change.delete) {
-                    for (let i = 0; i < change.delete; i++) {
-                        let el = arr[counter + i]
-                        el.remove()
-                        dom2doc.delete(el)
-                    }
-                } else if (change.insert) {
-                    for (let i = 0; i < change.insert.length; i++) {
-                        if (counter === 0) {
-                            let el = svgLine(e.target.get(0))
-                            s.insertAdjacentElement('afterbegin', el)
-                            dom2doc.set(el, e.target.get(0))
-                        } else {
-                            let el = svgLine(e.target.get(counter))
-                            arr[counter - 1].insertAdjacentElement('afterend', el)
-                            dom2doc.set(el, e.target.get(counter))
-                        }
-                        counter += 1
-                    }
-                }
-            })
-        })
+        props.state.docFromDom.set(d, props.node)
+        props.state.domFromDoc.set(props.node, d)
     })
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+            e.stopPropagation()
+            let p = new Y.Map()
+            p.set('!', new Y.Text(''))
+            props.node.parent.insert(props.node.parent.toArray().indexOf(props.node) + 1, [p])
+        }
+    }
 
 
     return (
-        <div class="flex flex-col gap-2">
-            <NodeBar parent={props.parent} index={props.index}>
-                <button classList={{'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></button>
-                <button classList={{'opacity-25': erase()}} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
-                <button classList={{'opacity-25': !erase()}} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
-            </NodeBar>
-            <svg ref={s} class="cursor-crosshair shadow-inner border" classList={{ 'touch-none': allowTouch() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
-            </svg>
-        </div>
+        <>
+            <div ref={d} onKeyDown={handleKeyDown} tabIndex={0} onFocus={() => setLocked(false)} onBlur={() => setLocked(true)} contentEditable={false} class="content flex" onClick={() => setLocked(false)}>
+
+                <div class="relative w-full">
+                    <div class="absolute top-0 left-0">
+                        <button onPointerDown={(e) => drag(e, props.node, props.state, 'content')} onClick={(e) => setShowDialog({ x: e.clientX, y: e.clientY })}>:</button>
+                    </div>
+                    <Show when={!locked()}>
+                        <div class="absolute top-0 right-0 flex gap-1">
+                            <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+                            <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()}/>
+                            <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
+                            <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
+                            <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
+                        </div>
+
+                        <div class="absolute bottom-0 right-0">
+                            <button onPointerDown={handleCanvasResize}>/</button>
+                        </div>
+                    </Show>
+                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => !locked() && (erase() ? getObjectUnderCursor(e) : handlePointerDown(e))}>
+                        <For each={data()}>
+                            {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+                        </For>
+                    </svg>
+                </div>
+            </div>
+            <Show when={showDialog()}>
+                <Dialog pos={showDialog()} setShow={setShowDialog}>
+                    <div class="flex flex-col gap-1">
+                        <button onClick={() => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node))}>Delete</button>
+                    </div>
+                </Dialog>
+            </Show>
+        </>
     )
 }

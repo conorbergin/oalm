@@ -6,6 +6,36 @@ import { fixer } from './fixer'
 const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
 
+const encrypt = async (data: ArrayBuffer, user: User) => {
+    return await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        user.masterKey,
+        data
+    )
+}
+
+const decrypt = async (data: ArrayBuffer, user: User) => {
+    try {
+        return await crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv
+            },
+            user.masterKey,
+            data
+        )
+    } catch (e) {
+        console.log('failed to decrypt:' + e)
+        return
+    }
+}
+
+
+
+
 export type User = {
     userid: string,
     masterKey: CryptoKey,
@@ -19,7 +49,7 @@ export const deriveUser = async (userid: string, password: string) => {
         enc.encode(password),
         "PBKDF2",
         false,
-        ["deriveKey","deriveBits"]
+        ["deriveKey", "deriveBits"]
     )
     let masterKey = await crypto.subtle.deriveKey(
         {
@@ -75,9 +105,17 @@ export const createKeychain = async (user: User) => {
         true,
         ["encrypt", "decrypt"]
     )
+    // console.log('a')
 
-    let priv = await crypto.subtle.exportKey("raw", keypair.privateKey)
-    let pub = await crypto.subtle.exportKey("raw", keypair.publicKey)
+    let dec = new TextDecoder()
+    let enc = new TextEncoder()
+    let pub = await crypto.subtle.exportKey("spki", keypair.publicKey)
+    // console.log('len: ' + pub.byteLength + ' b64: ' + btoa(dec.decode(pub)))
+
+
+    let priv = await crypto.subtle.exportKey("pkcs8", keypair.privateKey)
+    // console.log('len: ' + priv.byteLength + ' b64: ' + btoa(dec.decode(pub)))
+
 
     pk.set('private', new Uint8Array(priv))
     pk.set('public', new Uint8Array(pub))
@@ -92,59 +130,28 @@ export const createKeychain = async (user: User) => {
     )
     let first_key_export = await crypto.subtle.exportKey("raw", first_key)
     kc.set(crypto.randomUUID(), new Uint8Array(first_key_export))
+    // console.log(kc.toJSON())
+    // console.log(pk.toJSON())
 
     return [Y.encodeStateAsUpdate(doc), pub]
 }
 
-const encrypt = async (data: ArrayBuffer, user: User) => {
-    return await crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv
-        },
-        user.masterKey,
-        data
-    )
-}
-
-const decrypt = async (data: ArrayBuffer, user: User) => {
-    return await crypto.subtle.decrypt(
-        {
-            name: "AES-GCM",
-            iv: iv
-        },
-        user.masterKey,
-        data
-    )
-}
-
-
-export const login = async (user: User) => {
-    let url = `${API_URL}/keychain?userid=${user.userid}&userhash=${user.masterHash}`
-    let resp = await fetch(url)
-    let body = await resp.body
-    if (!body) {
-        return
+export const register = async (user: User, publicKey: ArrayBuffer, keychain: ArrayBuffer) => {
+    if (publicKey.byteLength != 550) {
+        throw new Error('invalid public key')
     }
-    let data = await (await resp.blob()).arrayBuffer()
-    return await decrypt(data, user)
-}
-
-
-
-
-export const register = async (user: User, publicKey:ArrayBuffer) => {
     let url = `${API_URL}/register?userid=${user.userid}&userhash=${user.masterHash}`
-    fetch(url, {
+    let body = new Blob([publicKey, await encrypt(keychain,user)])
+    return fetch(url, {
         method: 'POST',
-        body: publicKey,
+        body,
     })
 }
 
-export const putNotebook = async (user:User, doc: Y.Doc) => {
+export const putNotebook = async (user: User, doc: Y.Doc) => {
     let docid = doc.getMap('root').get('id')
     let url = `${API_URL}/notebook?userid=${user.userid}&userhash=${user.masterHash}&notebookid=${docid}`
-    let body = await encrypt(Y.encodeStateAsUpdate(doc),user)
+    let body = await encrypt(Y.encodeStateAsUpdate(doc), user)
     fetch(url, {
         method: 'POST',
         body: body,
@@ -152,19 +159,15 @@ export const putNotebook = async (user:User, doc: Y.Doc) => {
 }
 
 
-export const getNotebook = async (user: User, docid:string) => {
+export const getNotebook = async (user: User, docid: string) => {
     let url = `${API_URL}/notebook?userid=${user.userid}&userhash=${user.masterHash}&notebookid=${docid}`
     let resp = await fetch(url)
-    let body = await resp.body
-    if (!body) {
+    if (!resp.ok || !resp.body) {
+        console.log('no notebook')
         return
     }
     let data = await (await resp.blob()).arrayBuffer()
-    let update =  await decrypt(data, user)
-
-    let doc = new Y.Doc()
-    Y.applyUpdate(doc, new Uint8Array(update))
-    return doc
+    return decrypt(data, user)
 }
 
 export const putKeychain = async (user: User, keychain: Y.Doc) => {
@@ -184,13 +187,15 @@ export const getKeychain = async (user: User) => {
         return
     }
     let data = await (await resp.blob()).arrayBuffer()
+    let dec = new TextDecoder()
+    // console.log('encryted keychain: ' + btoa(dec.decode(data)))
     return decrypt(data, user)
 }
 
 
 
 
-export const createNotebook = async ():Promise<[Y.Doc, ArrayBuffer]> => {
+export const createNotebook = async (): Promise<[string, ArrayBuffer, ArrayBuffer]> => {
     let key = await crypto.subtle.generateKey(
         {
             name: "AES-GCM",
@@ -204,21 +209,22 @@ export const createNotebook = async ():Promise<[Y.Doc, ArrayBuffer]> => {
     let ydoc = new Y.Doc()
     ydoc.getMap('root').set('id', guid)
     fixer(ydoc.getMap('root'))
-    return [ydoc, ek]
+    let update = Y.encodeStateAsUpdate(ydoc)
+    return [guid, update, ek]
 }
 
 export const hello = async () => fetch(`${API_URL}/hello`).then(resp => resp.text())
 
 
 export const authenticate = async (user: User) => {
-    let url = `${API_URL}/authenticate?userid=${user.userid}&userhash=${user.masterHash}`
+    let url = `${API_URL}/authorize?userid=${user.userid}&userhash=${user.masterHash}`
     return fetch(url)
 }
 
 
 
 
-export const inviteUser = async (user:User,inviteeId: string, notebookId: string, notebookKey: string) => {
+export const inviteUser = async (user: User, inviteeId: string, notebookId: string, notebookKey: string) => {
     let url = `${API_URL}/publickey?userid=${user.userid}&userhash=${user.masterHash}&invitee=${inviteeId}`
     let resp = await fetch(url)
     let body = await resp.body
@@ -227,7 +233,7 @@ export const inviteUser = async (user:User,inviteeId: string, notebookId: string
     }
     let publickey = await (await resp.blob()).arrayBuffer()
     let key = await crypto.subtle.importKey(
-        "raw",
+        "spki",
         new Uint8Array(publickey),
         {
             name: "RSA-OAEP",

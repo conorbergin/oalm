@@ -1,42 +1,49 @@
 import * as Y from "yjs";
 
 import { IndexeddbPersistence } from "y-indexeddb";
+import { WebrtcProvider } from "y-webrtc";
 
-import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary } from "solid-js";
-import { StepSequencer } from "./StepSequencer";
+import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on } from "solid-js";
+import { StepSequencer, newPiece } from "./StepSequencer";
 import { Codemirror } from "./Codemirror";
 import { TableView } from "./Table";
 import { Paint } from "./Paint";
 import { fixer } from "./fixer";
 import { TextNode } from "./Codemirror"
 import { NodeBar } from "./Toolbars";
+import { createTable } from "./table";
+import { Field } from "./Field";
 
 
-const newSS = () => {
-    let node = new Y.Map()
-    node.set('S', new Y.Array())
-    return node
-}
+import { EditorView } from './Editor'
+import { GridView } from './GridView'
 
-const newCM = () => {
-    let node = new Y.Map()
-    node.set('!', new Y.Text())
-    return node
-}
-
-const newPaint = () => {
-    let node = new Y.Map()
-    let paint = new Y.Map()
-    let data = new Y.Array()
-    paint.set('data', data)
-    node.set('paint', paint)
-    return node
-}
+import {
+    createElementSize,
+    createWindowSize,
+} from '@solid-primitives/resize-observer'
 
 
-export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null } }> = (props) => {
+import * as Icons from "./Icons";
+import { Portal } from "solid-js/web";
+import { DTNode, DTPicker, MaybeDT } from "./DatePicker";
+import { CalendarView } from "./Calendar";
+import { getNotebook, User, putNotebook } from "./service";
+import { genId } from "./utils";
+import { Sel } from "./selection";
+
+
+
+export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }, user: User }> = (props) => {
 
     const [synced, setSynced] = createSignal(false)
+    const [calendar, setCalendar] = createSignal(false)
+    const [path, setPath] = createSignal([])
+    const viewStates = ['Outline', 'Table', 'Timeline']
+    const [view, setView] = createSignal(0)
+
+
+
 
     let ydoc = new Y.Doc()
 
@@ -45,114 +52,88 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         ydoc.destroy()
         ydoc = new Y.Doc()
         let indexeddbProvider = new IndexeddbPersistence(props.doc.id, ydoc)
+        let webrtcProvider = new WebrtcProvider(props.doc.id, ydoc)
         indexeddbProvider.whenSynced.then(() => {
-            fixer(ydoc.getMap('root'))
+            fixer(ydoc.getMap('root'), props.doc.id)
             console.log(ydoc.get('root').toJSON())
+            setPath([ydoc.get('root')])
             setSynced(true)
         })
+    })
+
+    const handleSync = async () => {
+        if (synced()) {
+            let nb = await getNotebook(props.user, props.doc.id)
+            if (nb) {
+                Y.applyUpdate(ydoc, new Uint8Array(nb))
+                let u = Y.encodeStateAsUpdate(ydoc)
+                await putNotebook(props.user, ydoc)
+            } else {
+                await putNotebook(props.user, ydoc)
+            }
+        }
+    }
+
+    createEffect(() => {
+        console.log(path().map((p) => p.get('!').toString()))
     })
 
 
 
 
     return (
-        <div class="border-t border-black overflow-scroll grid" style="grid-template-columns: 1fr min(70ch,100%) 1fr">
-            <Show when={synced()}>
-                <div class=""></div>
-                <div class="flex flex-col p-1">
-                    <FolderView root={ydoc.getMap('root')} />
-                </div>
-                <div class=""></div>
-            </Show>
-        </div>
-    )
-}
-
-export const FolderView: Component = (props) => {
-
-    const [arr, setArr] = createSignal(props.root.get('$').toArray())
-
-    const node = props.root.get('$')
-
-    const f = () => setArr(props.root.get('$').toArray())
-
-    props.root.get('$').observe(f)
-    onCleanup(() => props.root.get('$').unobserve(f))
-
-
-    return (
         <>
-            <div class="font-bold text-3xl">
-                <Codemirror ytext={props.root.get('!')} />
-            </div>
-            <div class="flex flex-col gap-8">
-                <For each={arr()}>
-                    {(item, index) =>
-
-
-                        <div class="max-w-prose flex-1">
-                            <ErrorBoundary fallback={
-                                <div class="bg-red-500">
-                                    <button onClick={() => { node.delete(index()) }}>- Error!</button>
-                                </div>
-                            }>
-                                <Switch>
-                                    <Match when={item.has('S')}>
-                                        <StepSequencer node={item} />
-                                    </Match>
-                                    <Match when={item.has('!')}>
-                                        <TextNode ytext={item.get('!')} parent={props.root.get('$')} index={index()} />
-                                    </Match>
-                                    <Match when={item.has('header')}>
-                                        <TableView node={item} />
-                                    </Match>
-                                    <Match when={item.has('paint')}>
-                                        <Paint node={item.get('paint')} parent={props.root.get('$')} index={index()} />
-                                    </Match>
-                                    <Match when={true}>
-                                        <NodeSelector node={item} parent={props.root.get('$')} index={index()} />
-                                    </Match>
-                                </Switch>
-                            </ErrorBoundary>
-                        </div>
-                    }
+            <Show when={synced()}>
+                <button class="ml-2" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                <For each={path()}>
+                    {(item, index) => <Show when={index() === path().length - 1} fallback={<button class="font-bold m-1" onClick={() => {console.log(index());setPath(p => [...p.slice(0,index()+1)])}}>{item.get('!').toString()}</button>}>
+                        <Switch>
+                            <Match when={view() === 0}>
+                                <EditorView node={item} setPath={setPath} />
+                            </Match>
+                            <Match when={view() === 1}>
+                                <GridView node={item} />
+                            </Match>
+                            <Match when={view() === 2}>
+                                <CalendarView root={item} />
+                            </Match>
+                        </Switch>
+                    </Show>}
                 </For>
-                <div class="max-w-prose flex gap-1">
-                    <button onClick={() => { node.insert(node.length, [newSS()]) }}>StepSequencer</button>
-                    <button onClick={() => { node.insert(node.length, [newCM()]) }}>Text</button>
-                    <button onClick={() => { node.insert(node.length, [newPaint()]) }}>Paint</button>
-                </div>
-            </div>
+            </Show >
         </>
     )
 }
 
-export const NodeSelector: Component<{ node: Y.Map<any>, parent: Y.Array<any>, index: number }> = (props) => {
+
+export const SwitchNode: Component<{ node: Y.Map<any>, collapsed: boolean, index: number }> = (props) => {
     return (
-        <NodeBar node={props.node} parent={props.parent} index={props.index} >
-            <button class="" onClick={() => {
-                Y.transact(props.parent.doc!, () => {
-                    props.parent.delete(props.index)
-                    props.parent.insert(props.index, [newPaint()])
-                }
-                )
-            }}>PAINT</button>
-            <button class="" onClick={() => {
-                Y.transact(props.parent.doc!, () => {
-                    props.parent.delete(props.index)
-                    props.parent.insert(props.index, [newSS()])
-                }
-                )
-            }
-            }>SS</button>
-            <button class="" onClick={() => {
-                Y.transact(props.parent.doc!, () => {
-                    props.parent.delete(props.index)
-                    props.parent.insert(props.index, [newCM()])
-                }
-                )
-            }
-            }>Text</button>
-        </NodeBar >
+
+        <ErrorBoundary fallback={
+            <div class="bg-red-500">
+                <button onClick={() => { props.node.parent.delete(props.index) }}>- Error!</button>
+            </div>
+        }>
+            <Switch>
+                <Match when={props.node.has('bpm')}>
+                    <StepSequencer node={props.node} collapsed={props.collapsed} />
+                </Match>
+                <Match when={props.node.has('&')}>
+                    <div class="border-2 border-black p-1">
+                        <FolderView node={props.node} child={true} collapsed={props.collapsed} />
+                    </div>
+                </Match>
+                <Match when={props.node.has('!')}>
+                    <Codemirror ytext={props.node.get('!')} />
+                </Match>
+                <Match when={props.node.has('paint')}>
+                    <Paint node={props.node.get('paint')} index={props.index} collapsed={props.collapsed} />
+                </Match>
+                <Match when={true}>
+                    <NodeSelector parent={props.node.parent} index={props.index} />
+                </Match>
+            </Switch>
+        </ErrorBoundary>
+
     )
 }

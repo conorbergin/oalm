@@ -3,11 +3,11 @@ import * as Y from 'yjs'
 import { yReplace } from './utils'
 import { TEXT, CONTENT, CHILDREN, createParagraph } from './input'
 
-export const fixer = (root : Y.Map<any>) => {
+export const fixer = (root : Y.Map<any>, id: string) => {
 
   if (!root.get('id')) {
     console.log('fixer: no id')
-    root.set('id', crypto.randomUUID())
+    root.set('id', id)
   }
 
 

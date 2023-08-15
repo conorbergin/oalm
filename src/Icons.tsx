@@ -1,17 +1,23 @@
-import {Component } from 'solid-js'
+import { Component } from 'solid-js'
 
 export const Plus: Component = () => (
     <svg class="w-4 h-4" viewBox="0 0 16 16">
-        <path d="M 8 0 v 16 M 0 8 h 16" stroke="currentColor" stroke-width="2" />
+        <path d="M 8 2 v 12 M 2 8 h 12" stroke="currentColor" stroke-width="2" />
     </svg>
 )
 
 export const Minus: Component = () => (
     <svg class="w-4 h-4" viewBox="0 0 16 16">
-        <path d="M 0 8 h 16" stroke="currentColor" stroke-width="2" />
+        <path d="M 2 8 h 12" stroke="currentColor" stroke-width="2" />
     </svg>
 )
 
+
+export const Minus2: Component = () => (
+    <svg class="w-4 h-1" viewBox="0 0 16 4">
+        <path d="M 2 2 h 12" stroke="currentColor" stroke-width="2" />
+    </svg>
+)
 export const Square: Component = () => (
     <svg class="w-4 h-4" viewBox="0 0 16 16" >
         <rect x="1" y="1" width="14" height="14" fill="none" stroke="black" stroke-width="2" />
@@ -20,7 +26,7 @@ export const Square: Component = () => (
 
 export const Circle: Component = () => (
     <svg class="w-4 h-4" viewBox="0 0 16 16">
-        <circle cx="8" cy="8" r="7" fill="none" stroke="black" stroke-width="2" />
+        <circle cx="8" cy="8" r="5" fill="none" stroke="black" stroke-width="2" />
     </svg>
 )
 
@@ -36,11 +42,30 @@ export const Drag: Component = () => (
     </svg>
 )
 
+export const Drag2: Component = () => (
+    <svg class="w-4 h-4" viewBox="0 0 16 16">
+        <circle cx="5" cy="2" r="2" fill="currentColor" />
+        <circle cx="5" cy="8" r="2" fill="currentColor" />
+        <circle cx="5" cy="14" r="2" fill="currentColor" />
+        <circle cx="12" cy="2" r="2" fill="currentColor" />
+        <circle cx="12" cy="8" r="2" fill="currentColor" />
+        <circle cx="12" cy="14" r="2" fill="currentColor" />
+    </svg>
+)
+
+export const HalfDrag: Component = () => (
+    <svg class="w-2 h-4" viewBox="0 0 8 16">
+        <circle cx="5" cy="2" r="2" fill="currentColor" />
+        <circle cx="5" cy="8" r="2" fill="currentColor" />
+        <circle cx="5" cy="14" r="2" fill="currentColor" />
+    </svg>
+)
+
 
 export const Pencil: Component = () => (
     <svg class="w-4 h-4" viewBox="0 0 16 16">
         <path d="M 8 1 l 4 8 l -4 2 l -4 -2 Z" fill="currentColor" />
-        <path d="M 8 1 l 6 12 v 5  h -12 v -5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin='round'/>
+        <path d="M 8 1 l 6 12 v 5  h -12 v -5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin='round' />
     </svg>
 )
 

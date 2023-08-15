@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
-import {paste} from './paste'
+import { paste } from './paste'
 
 import { createTable } from './table'
 import { t } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
@@ -31,15 +31,15 @@ export const VIDEO = 'V'
 export const STEPSEQUENCER = 'S'
 
 
-export const insertSS = (s : Sel) => {
+export const insertSS = (s: Sel) => {
     if (s.focus) return null
     let m = new Y.Map()
     m.set('S', '')
-    m.set('d', Y.Array.from(Array(16*8).fill(false)))
+    m.set('d', Y.Array.from(Array(16 * 8).fill(false)))
 
     let p = s.node.parent
     let i = p.parent.toArray().indexOf(p)
-    p.parent.insert(i+1, [m])
+    p.parent.insert(i + 1, [m])
 }
 
 export const createParagraph = (text: string): [Y.Map<any>, Y.Text] => {
@@ -120,6 +120,18 @@ export const insertText = (s: Sel, text: string) => {
     throw new Error('selection is not in a text node')
 }
 
+export const insertList = (s: Sel) => {
+    if (s.focus) return null
+    const m = new Y.Map()
+    const [p, c] = createParagraph('')
+    m.set('list', Y.Array.from([p]))
+    if (!s.node.parent.has(CHILDREN)) {
+        const p = s.node.parent
+        const i = p.parent.toArray().indexOf(p)
+        p.parent.insert(i + 1, [m])
+    }
+}
+
 
 export const getSection = (node: Y.AbstractType<any>): Y.Map<any> => {
     console.log(node.toJSON())
@@ -164,16 +176,16 @@ export const deleteNode = (node) => {
 }
 
 
-const insertList = (s: Sel) => {
-    if (s.focus) return
-    if (s.node.parent.has(TEXT)) {
-        let par = s.node.parent
-        let [n, f] = createParagraph('')
-        s.node = f
-        s.offset = 0
-        par.get(CONTENT).unshift([n])
-    }
-}
+// const insertList = (s: Sel) => {
+//     if (s.focus) return
+//     if (s.node.parent.has(TEXT)) {
+//         let par = s.node.parent
+//         let [n, f] = createParagraph('')
+//         s.node = f
+//         s.offset = 0
+//         par.get(CONTENT).unshift([n])
+//     }
+// }
 
 
 
@@ -190,25 +202,25 @@ export const deleteContent = (s: Sel) => {
 
         switch (true) {
             case p.has(TEXT):
-                if (p.get(CONTENT).length > 0 ) {
+                if (p.has(CONTENT) && p.get(CONTENT).length > 0) {
 
                     let textafter = p.get(CONTENT).get(0).get(TEXT).toString()
                     let c = p.get(CONTENT).get(0).get(CONTENT).clone().toArray()
                     p.doc.transact(() => {
-                        s.node.insert(s.node.length,textafter)
-                        p.get(CONTENT).delete(0,1)
+                        s.node.insert(s.node.length, textafter)
+                        p.get(CONTENT).delete(0, 1)
                         c.length > 0 && p.get(CONTENT).unshift(c)
                     })
                 } else if (!p.has(CHILDREN)) {
                     let i = p.parent.toArray().indexOf(p)
-                    if (i === p.parent.length -1) return
-                    let next = p.parent.get(i+1)
+                    if (i === p.parent.length - 1) return
+                    let next = p.parent.get(i + 1)
                     let textbefore = s.node.toString()
                     s.node = next.get(TEXT)
                     s.offset = textbefore.length
                     next.doc?.transact(() => {
                         next.parent.delete(i)
-                        next.get(TEXT).insert(0,textbefore)
+                        next.get(TEXT).insert(0, textbefore)
                     })
                 }
                 return
@@ -352,34 +364,51 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
 
         case 'insertParagraph':
             // lists
-            if (s.node.length === 0 && s.node.parent.has(TEXT) && !s.node.parent.has(CHILDREN) && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent)+1) && !s.node.parent.parent.parent.has(CHILDREN)) {
-                let [n,f] = createParagraph('')
-                let p = s.node.parent
-                let pp = p.parent.parent
+            if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
+                if (s.node.parent.parent.parent.has('&')) {
+                    let m = new Y.Map()
+                    let t = new Y.Text('')
+                    m.set(TEXT, t)
+                    m.set(CONTENT, new Y.Array())
+                    m.set(CHILDREN, new Y.Array())
 
-                s.node = f
-                s.offset = 0
-                
-                pp.doc.transact(() => {
-                    p.parent.delete(p.parent.toArray().indexOf(p),1)
-                    pp.parent.insert(pp.parent.toArray().indexOf(pp)+1,[n])
-                })
+                    let p = s.node.parent.parent.parent
+
+                    s.node = t
+
+                    p.doc!.transact(() => {
+                        p.get(CONTENT).delete(p.get(CONTENT).length-1, 1)
+                        p.get(CHILDREN).unshift([m])
+                    })
+                } else {
+                    let [n, f] = createParagraph('')
+                    let p = s.node.parent
+                    let pp = p.parent.parent
+
+                    s.node = f
+                    s.offset = 0
+
+                    pp.doc.transact(() => {
+                        p.parent.delete(p.parent.toArray().indexOf(p), 1)
+                        pp.parent.insert(pp.parent.toArray().indexOf(pp) + 1, [n])
+                    })
+                }
 
             } else if (s.node.parent.has('name')) {
                 let newRow = new Y.Map()
-                s.node.parent.parent.parent.get('items').get(0).forEach((v,k) => {
+                s.node.parent.parent.parent.get('items').get(0).forEach((v, k) => {
                     newRow.set(k, new Y.Text(''))
                 })
                 s.node.parent.parent.parent.get('items').unshift([newRow])
-                
+
 
             } else if (s.node.parent.parent.parent.has('items')) {
                 let index = s.node.parent.parent.toArray().indexOf(s.node.parent)
                 let newRow = new Y.Map()
-                s.node.parent.parent.get(0).forEach((v,k) => {
+                s.node.parent.parent.get(0).forEach((v, k) => {
                     newRow.set(k, new Y.Text(''))
                 })
-                s.node.parent.parent.insert(index+1, [newRow])
+                s.node.parent.parent.insert(index + 1, [newRow])
 
             } else {
                 insertParagraph(s)
@@ -392,50 +421,9 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
         case 'insertFromPaste':
             console.log('paste', e)
             paste(s, e)
-            break   
-        default:
-            break
-    }
-}
-
-export const keydownHandler = (e: KeyboardEvent, s: Sel) => {
-    switch (true) {
-
-        case e.key === 'Enter' && e.shiftKey && e.ctrlKey:
-            e.preventDefault()
-            addSection(s)
-            break
-        case e.key === 'Enter' && e.ctrlKey:
-            e.preventDefault()
-            addSection(s)
-            break
-        case e.key === 'Enter' && e.shiftKey:
-            e.preventDefault()
-        case e.key === 'Backspace' && e.ctrlKey && e.shiftKey:
-            e.preventDefault()
-            // deleteSection(getSection(s.node))
-            break
-        case e.key === 'l' && e.ctrlKey:
-            e.preventDefault()
-            insertList(s)
-            break
-        case e.key === '1' && e.ctrlKey:
-            e.preventDefault()
-            insertContent(s, ...createTable(''),true)
-            break
-        case e.key === '2' && e.ctrlKey:
-            toggleDone(s)
-            break
-        case e.key === '3' && e.ctrlKey:
-            insertSS(s)
-            break
-        case e.key === 'b' && e.ctrlKey:
-            e.preventDefault()
-            break
-        case e.key === 'i' && e.ctrlKey:
-            e.preventDefault()
             break
         default:
             break
     }
 }
+

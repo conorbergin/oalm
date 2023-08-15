@@ -1,38 +1,52 @@
-import { Component, For } from "solid-js"
+import { Component, For, createSignal, onCleanup, Show } from "solid-js"
 
-import { DateTime } from 'luxon'
+import * as Y from 'yjs'
 
-// Get the last Monday of the previous year
-const lastMondayOfYear = DateTime.local().minus({ years: 1 }).endOf('year').startOf('week').plus({ days: 0 });
-
-// Get the first Sunday of the next year
-const firstSundayOfYear = DateTime.local().plus({ years: 1 }).startOf('year').endOf('week').minus({ days: 0 });
-
-// Generate all the dates between the last Monday and first Sunday
-const datesArray: Array<{ month: number, date: number }> = [];
-let currentDate = lastMondayOfYear;
-while (currentDate <= firstSundayOfYear) {
-    datesArray.push({ month: currentDate.month, date: currentDate.day });
-    currentDate = currentDate.plus({ days: 1 });
-}
+import { Temporal } from '@js-temporal/polyfill';
 
 
-export const CalendarView = (props) => {
+
+
+export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
+    const currentYear = Temporal.Now.plainDateISO().year
+
+    const [dates, setDates] = createSignal([])
+    const [events, setEvents] = createSignal([])
+
+
+    const f = (node: Y.Map<any>) => {
+        if (node.has('~')) {
+            let date = Temporal.PlainDate.from(node.get('~'))
+            if (date.year === currentYear) {
+                setDates(dates => [...dates, { node, date }])
+            }
+        }
+        if (node.has('&')) {
+            node.get('&').forEach((n) => f(n))
+        }
+    }
+
+    const g = () => {
+        setDates([])
+        f(props.root)
+    }
+
+    g()
+
+    props.root.observeDeep(g)
+    onCleanup(() => props.root.unobserveDeep(g))
+
+
     return (
         <div class="w-full h-full">
             2023
-            <div class="grid grid-cols-7">
-                <For each={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}>
-                    {item => <div class="font-bold">{item}</div>}
-                </For>
-            </div>
-            <div class="grid grid-cols-7 overflow-scroll w-full h-full border-t border-black">
+            <div class="flex flex-col gap-1 overflow-scroll w-full h-full border-t border-black">
 
-                <For each={datesArray}>
-                    {(item, index) => <div class="pb-10 border" classList={{
-                        'text-red-600': item.month % 2 === 0,
-                        'bg-gray-300': index() % 7 === 5 || index() % 7 === 6,
-                    }}>{item.date}</div>}
+                <For each={dates()}>
+                    {(item, index) => <div class="pb-10 border">
+                        <button class="text-black text-sm">{item.node.get('!').toString()}</button>
+                        <button>{item.date.toLocaleString()}</button>
+                    </div>}
                 </For>
             </div>
         </div>

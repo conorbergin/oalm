@@ -12,10 +12,15 @@
   "devDependencies": {
     "@codemirror/lang-javascript": "^6.1.9",
     "@codemirror/state": "^6.2.1",
+    "@js-temporal/polyfill": "^0.4.4",
+    "@solid-primitives/resize-observer": "^2.0.18",
     "@types/d3-scale": "^4.0.3",
+    "@types/d3-selection": "^3.0.5",
     "autoprefixer": "^10.4.14",
     "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
     "paper": "^0.12.17",
+    "perfect-freehand": "^1.2.0",
     "postcss": "^8.4.24",
     "solid-js": "^1.7.6",
     "tailwindcss": "^3.3.2",
@@ -33,7 +38,6 @@
     "@codemirror/lang-markdown": "^6.2.0",
     "@vite-pwa/assets-generator": "^0.0.3",
     "codemirror": "^6.0.1",
-    "luxon": "^3.3.0",
     "tone": "^14.7.77"
   }
 }

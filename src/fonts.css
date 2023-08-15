@@ -1,3 +1,28 @@
+/* CAT_Wathari */
+
+@font-face {
+    font-family: 'Walthari';
+    src: url('./fonts/CAT_Walthari/CAT_Walthari.ttf') format('truetype');
+}
+
+/* UnifrakturCook */
+@font-face {
+    font-family: 'UnifrakturCook';
+    src: url('./fonts/UnifrakturCook/UnifrakturCook-Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* UnifrakturMaguntia */
+@font-face {
+    font-family: 'UnifrakturMaguntia';
+    src: url('./fonts/UnifrakturMaguntia/UnifrakturMaguntia-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
+
 /* InputMono */
 @font-face {
     font-family: 'InputMono';
