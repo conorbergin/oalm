@@ -7,7 +7,9 @@ export const yIndex = (node : Y.AbstractType<any>) : number => node.parent.toArr
 
 export const yKey = (node : Y.AbstractType<any>) : string => node.parent.entries().find(([k,v]) => v === node)[0]
 
-
+export const yDeleteSelfFromArray = (node : Y.AbstractType<any>) => {
+        (node.parent as Y.Array<any>).delete((node.parent as Y.Array<any>).toArray().indexOf(node), 1)
+}
 
 export const yReplace = (oldNode : Y.AbstractType<any>, newNode : Y.AbstractType<any>) => {
     let parent = oldNode.parent

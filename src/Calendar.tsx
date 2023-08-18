@@ -37,15 +37,21 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
     onCleanup(() => props.root.unobserveDeep(g))
 
 
+    const w = 20
     return (
         <div class="w-full h-full">
             2023
-            <div class="flex flex-col gap-1 overflow-scroll w-full h-full border-t border-black">
+            <div class="font-body font-bold relative gap-1 overflow-scroll w-full h-full border-t border-black" >
+                <For each={[...Array(365).keys()]}>
+                    {(item, index) =>
+                        <div class="absolute p-1 border-l" style={{ height: '1000px', left: `${item * w}px` }}>
+                        </div>
+                    }
+                </For>
 
                 <For each={dates()}>
-                    {(item, index) => <div class="pb-10 border">
-                        <button class="text-black text-sm">{item.node.get('!').toString()}</button>
-                        <button>{item.date.toLocaleString()}</button>
+                    {(item, index) => <div class="absolute border p-1 border-black" style={{ top: `${index() * 40}px`, left: `${item.date.dayOfYear*20}px` }}>
+                        <button class=" text-black text-sm">{item.node.get('!').toString()}</button>
                     </div>}
                 </For>
             </div>

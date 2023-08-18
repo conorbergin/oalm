@@ -2,7 +2,7 @@ import * as Y from "yjs"
 import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack, onCleanup, onMount, Show } from "solid-js"
 import * as Icons from "./Icons";
 
-import { drag, EditorState } from './Editor'
+import { drag,menu, EditorState } from './Editor'
 
 
 
@@ -198,16 +198,30 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
+    const handleDrag = (e) => {
+        drag(e, props.node, props.state, 'content')
+    }
+
+    const handleMenu = (e) => {
+        menu(
+            e,
+            props.node,
+            {
+                'delete': () => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node), 1)
+            }
+        )
+    }
+
 
     return (
         <>
-            <div ref={d} onKeyDown={handleKeyDown} tabIndex={0} onFocus={() => setLocked(false)} onBlur={() => setLocked(true)} contentEditable={false} class="content flex" onClick={() => setLocked(false)}>
+            <div ref={d} contentEditable={false} class="content flex" >
 
-                <div class="relative w-full">
-                    <div class="absolute top-0 left-0">
-                        <button onPointerDown={(e) => drag(e, props.node, props.state, 'content')} onClick={(e) => setShowDialog({ x: e.clientX, y: e.clientY })}>:</button>
+                    <div>
+                        <button onPointerDown={handleDrag} onClick={handleMenu}>~</button>
                     </div>
-                    <Show when={!locked()}>
+                <div class="relative w-full">
+                    <Show when={true}>
                         <div class="absolute top-0 right-0 flex gap-1">
                             <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
                             <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()}/>
@@ -227,13 +241,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                     </svg>
                 </div>
             </div>
-            <Show when={showDialog()}>
-                <Dialog pos={showDialog()} setShow={setShowDialog}>
-                    <div class="flex flex-col gap-1">
-                        <button onClick={() => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node))}>Delete</button>
-                    </div>
-                </Dialog>
-            </Show>
         </>
     )
 }

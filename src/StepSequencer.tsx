@@ -3,7 +3,7 @@ import * as Tone from 'tone'
 import { MidiNote, Note } from 'tone/build/esm/core/type/NoteUnits'
 import * as Y from 'yjs'
 
-import { EditorState, TextView } from './Editor'
+import { EditorState, TextView, drag, menu } from './Editor'
 
 import * as d3 from 'd3-selection'
 import { a } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
@@ -42,18 +42,13 @@ const pitchInScale = (scale: number, pitch: number) => {
 
 export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
-    const [parts, setParts] = createSignal(props.node.get('parts').toArray())
-    const [bpm, setBpm] = createSignal(props.node.get('bpm'))
-
-
-    const [activePart, setActivePart] = createSignal(0)
-
-
+    
+    
     const chorus = new Tone.Chorus(4, 2.5, 0.5).toDestination()
     const inst = chorus
-
+    
     const polySynth = new Tone.PolySynth(Tone.FMSynth).connect(chorus)
-
+    
     polySynth.set({
         "harmonicity": 6,
         "modulationIndex": 2,
@@ -76,44 +71,48 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
             "release": 0.2
         }
     })
+    
+    
+    const [parts, setParts] = createSignal(props.node.get('parts').toArray())
+    const [bpm, setBpm] = createSignal(props.node.get('bpm'))
+    const [steps, setSteps] = createSignal(props.node.get('length'))
 
 
+    const [activePart, setActivePart] = createSignal(0)
     const [pitchWidth, setPitchWidth] = createSignal(128)
     const [noteGrid, setNoteGrid] = createSignal(0.25)
     const [scale, setScale] = createSignal(1)
     const [aspect, setAspect] = createSignal(10)
-    const [zoom, setZoom] = createSignal(10)
-    const [beats, setBeats] = createSignal(4)
-    const [bars, setBars] = createSignal(4)
-    const [steps, setSteps] = createSignal(8)
     const [playing, setPlaying] = createSignal(false)
-
-
     const [mouseOver, setMouseOver] = createSignal(false)
-
-
     const [coords, setCoords] = createSignal([0, 0])
-
     const [flip, setFlip] = createSignal(false)
 
 
 
-    Tone.Transport.bpm.value = bpm()
 
 
-    const f = () => setBpm(props.node.get('bpm').toNumber())
+
+
+
+    Tone.Transport.bpm.value = props.node.get('bpm')
+
+
+    const f = () => {
+        setBpm(props.node.get('bpm'))
+        Tone.Transport.bpm.value = props.node.get('bpm')
+        setSteps(props.node.get('length'))
+    }
     const g = () => {
         setParts(props.node.get('parts').toArray())
     }
-
-
     props.node.observe(f)
     props.node.get('parts').observe(g)
-    onCleanup(() => {
-        props.node.has('parts') && props.node.get('parts').unobserve(g)
-        console.log(props.node.toJSON())
-        props.node.unobserve(f)
-    })
+    // onCleanup(() => {
+    //     props.node.has('parts') && props.node.get('parts').unobserve(g)
+    //     console.log(props.node.toJSON())
+    //     props.node.unobserve(f)
+    // })
 
 
     const parseBeat = (time: string) => {
@@ -166,29 +165,6 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
 
         }
         props.node.get('notes').observe(f)
-        // onCleanup(() => props.node.get('notes').unobserve(f))
-
-        // const playNotesatTime = (time: number) => {
-        //     // let now = Tone.now()
-        //     const notes = props.node.get('notes')
-        //     const keys = Array.from(notes.keys())
-        //     const notesAtTime = keys.filter((k: string) => k.startsWith(`0:${time}:`))
-        //     notesAtTime.forEach((k: string) => {
-        //         const [t, pitch] = k.split('~')
-        //         let l = t.split(':')[2]
-        //         console.log(l)
-        //         polySynth.triggerAttackRelease(pitch, '16n', `+0:0:${l}`)
-        //     })
-        // }
-
-        // let t = 0
-        // const loop = new Tone.Loop((time) => {
-        //     console.log(time)
-
-        //     playNotesatTime(t)
-        //     t = (t + 1) % 16
-        // }, '1n').start()
-
         let radius = 0.6
 
         return (
@@ -255,13 +231,27 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
 
     const sw = 1
 
+    const handleDrag = (e: PointerEvent) => {
+        drag(e, props.node, props.state, 'content')
+    }
+
+    const handleMenu = (e: PointerEvent) => {
+        menu(
+            e,
+            props.node,
+            {
+                'delete': () => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node), 1)
+            }
+        )
+    }
+
     return (
-        <div  contenteditable={false} class="flex flex-col">
+        <div  contenteditable={false} class="flex flex-col content">
 
             <div class="flex gap-1">
-                <button contenteditable={false} onClick={() => { }} >:</button>
+                <button contenteditable={false} onPointerDown={handleDrag} onClick={handleMenu} >~</button>
                 <button contenteditable={false} class="bg-neutral-200" onClick={() => { setPlaying(p => !p) }}>{playing() ? 'Stop' : 'Play'}</button>
-                <input class="w-16" type="number" min="30" max="240" value={Tone.Transport.bpm.value} onChange={(e) => Tone.Transport.bpm.value = e.target.valueAsNumber} />
+                <input class="w-16" type="number" min="30" max="240" value={bpm()} onChange={(e) => props.node.set('bpm',e.target.valueAsNumber)} />
                 <select onChange={(e) => setNoteGrid(parseFloat(e.target.value))}>
                     <option value='1' >1/1</option>
                     <option value='0.5' >1/2</option>
@@ -282,7 +272,7 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
                     <option value={10} >Bb/Gm</option>
                     <option value={11} >F/Dm</option>
                 </select>
-                <input class="w-14" type="number" min="4" max="64" value={steps()} onChange={(e) => setSteps(e.target.valueAsNumber)} />
+                <input class="w-14" type="number" min="4" max="64" value={steps()} onChange={(e) => props.node.set('length',e.target.valueAsNumber)} />
                 <For each={parts()}>
                     {(p, index) => <>
                         <button classList={{ 'font-bold': index() === activePart() }} onClick={() => setActivePart(index())}>{p.get('instrument')}</button>
@@ -293,7 +283,7 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
             </div>
             <Show when={!flip()}>
                 <div class=" overflow-scroll max-h-96">
-                    <svg viewBox={`-1 -1 ${steps() * aspect() + 2} ${pitchWidth()}`} width={steps() * aspect() * zoom()} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave} onClick={handleClick}>
+                    <svg viewBox={`-1 -1 ${steps() * aspect() + 2} ${pitchWidth()}`} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave} onClick={handleClick}>
                         <For each={[...Array(pitchWidth()).keys()]}>
                             {(n) =>
                                 <Show when={pitchInScale(scale(), n)}>

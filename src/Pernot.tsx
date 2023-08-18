@@ -42,9 +42,6 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     const viewStates = ['Outline', 'Table', 'Timeline']
     const [view, setView] = createSignal(0)
 
-
-
-
     let ydoc = new Y.Doc()
 
     createEffect(() => {
@@ -74,17 +71,10 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         }
     }
 
-    createEffect(() => {
-        console.log(path().map((p) => p.get('!').toString()))
-    })
-
-
-
-
     return (
         <>
             <Show when={synced()}>
-                <button class="ml-2" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                <button class="ml-2 text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                 <For each={path()}>
                     {(item, index) => <Show when={index() === path().length - 1} fallback={<button class="font-bold m-1" onClick={() => {console.log(index());setPath(p => [...p.slice(0,index()+1)])}}>{item.get('!').toString()}</button>}>
                         <Switch>
@@ -105,35 +95,3 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     )
 }
 
-
-export const SwitchNode: Component<{ node: Y.Map<any>, collapsed: boolean, index: number }> = (props) => {
-    return (
-
-        <ErrorBoundary fallback={
-            <div class="bg-red-500">
-                <button onClick={() => { props.node.parent.delete(props.index) }}>- Error!</button>
-            </div>
-        }>
-            <Switch>
-                <Match when={props.node.has('bpm')}>
-                    <StepSequencer node={props.node} collapsed={props.collapsed} />
-                </Match>
-                <Match when={props.node.has('&')}>
-                    <div class="border-2 border-black p-1">
-                        <FolderView node={props.node} child={true} collapsed={props.collapsed} />
-                    </div>
-                </Match>
-                <Match when={props.node.has('!')}>
-                    <Codemirror ytext={props.node.get('!')} />
-                </Match>
-                <Match when={props.node.has('paint')}>
-                    <Paint node={props.node.get('paint')} index={props.index} collapsed={props.collapsed} />
-                </Match>
-                <Match when={true}>
-                    <NodeSelector parent={props.node.parent} index={props.index} />
-                </Match>
-            </Switch>
-        </ErrorBoundary>
-
-    )
-}

@@ -5,34 +5,34 @@ import * as Y from 'yjs'
 
 import { Temporal } from '@js-temporal/polyfill'
 
-import {Dialog} from './Dialog'
+import { Dialog } from './Dialog'
 
 
 
 
-const clockFaceRotated = [
-  '09', '10', '11', '12', '13', '14', '15',
-  '08', '', '', '', '', '', '16',
-  '07', '', '50', '00', '10', '', '17',
-  '06', '', '45', '', '15', '', '18',
-  '05', '', '40', '30', '20', '', '19',
-  '04', '', '', '', '', '', '20',
-  '03', '02', '01', '00', '23', '22', '21'
-]
+// const clockFaceRotated = [
+//   '09', '10', '11', '12', '13', '14', '15',
+//   '08', '', '', '', '', '', '16',
+//   '07', '', '50', '00', '10', '', '17',
+//   '06', '', '45', '', '15', '', '18',
+//   '05', '', '40', '30', '20', '', '19',
+//   '04', '', '', '', '', '', '20',
+//   '03', '02', '01', '00', '23', '22', '21'
+// ]
 
-const clockFaceRotatedMask = [
-  'h', 'h', 'h', 'h', 'h', 'h', 'h',
-  'h', '', '', '', '', '', 'h',
-  'h', '', 'm', 'm', 'm', '', 'h',
-  'h', '', 'm', '', 'm', '', 'h',
-  'h', '', 'm', 'm', 'm', '', 'h',
-  'h', '', '', '', '', '', 'h',
-  'h', 'h', 'h', 'h', 'h', 'h', 'h'
-]
+// const clockFaceRotatedMask = [
+//   'h', 'h', 'h', 'h', 'h', 'h', 'h',
+//   'h', '', '', '', '', '', 'h',
+//   'h', '', 'm', 'm', 'm', '', 'h',
+//   'h', '', 'm', '', 'm', '', 'h',
+//   'h', '', 'm', 'm', 'm', '', 'h',
+//   'h', '', '', '', '', '', 'h',
+//   'h', 'h', 'h', 'h', 'h', 'h', 'h'
+// ]
 
-const isoDurationString = 'PT3H30M'; // Duration
-const isoIntervalString = '2023-07-05T12:30:00Z/2023-07-06T12:30:00Z'; // Interval
-const isoDateTimeString = '2023-07-05T12:30:00Z'; // DateTime
+// const isoDurationString = 'PT3H30M'; // Duration
+// const isoIntervalString = '2023-07-05T12:30:00Z/2023-07-06T12:30:00Z'; // Interval
+// const isoDateTimeString = '2023-07-05T12:30:00Z'; // DateTime
 
 
 /*
@@ -72,46 +72,7 @@ Assignment:
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
-export const DatePicker: Component<{ date: Temporal.PlainDate, node: Y.Map<any> }> = (props) => {
-  const now = () => Temporal.Now.plainDateISO()
 
-  const [window, setWindow] = createSignal(props.date)
-  return (
-    <div class="text-gray-600">
-      <div>{props.date.toLocaleString('en-UK', { weekday: 'short', day: 'numeric', month: 'short', })}</div>
-      <div class="flex flex-col gap-4 text-base text-black/50">
-        <div>
-          <div class="grid grid-cols-6 gap-x-1">
-            <For each={[...Array(12).keys()]}>
-              {(i) => <button onClick={() => {
-                setWindow(window().with({ month: i + 1 }))
-              }} classList={{
-                'border': i + 1 === now().month,
-                underline: i + 1 === window().month,
-                'font-bold text-black': i + 1 === props.date.month,
-              }}>{months[i]}</button>}
-            </For>
-          </div>
-
-          <div class="grid grid-cols-7 gap-1">
-            <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
-              {(i) => <div />}
-            </For>
-            <For each={[...Array(window().daysInMonth).keys()]}>
-              {(i) =>
-                <button classList={{
-                  'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
-                  'font-bold text-black': (i === props.date.day - 1),
-                }} onClick={() => {
-                  props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
-                }}>{`${i + 1}`.padStart(2, '0')}</button>}
-            </For>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
   const [hasDT, setHasDT] = createSignal(props.node.has('~'))
@@ -133,19 +94,20 @@ export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
 
 
 
+
 export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
 
   const [show, setShow] = createSignal(false)
-  const [dt, setDT] = createSignal(Temporal.PlainDate.from(props.node.get('~')))
   const [done, setDone] = createSignal(false)
-
   const [hasChildren, setHasChildren] = createSignal(props.node.has('$'))
+
+  const [dt, setDT] = createSignal(null)
 
 
   const f = () => {
-    setDT(Temporal.PlainDate.from(props.node.get('~')))
+    setDT(props.node.get('~'))
     setDone(props.node.get('done').toString() === 'true')
-    setHasChildren(props.node.has('$'))
+    setHasChildren(props.node.has('&'))
   }
 
 
@@ -157,17 +119,66 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
       <button class="text-green-700 italic" classList={{
         'line-through text-gray-500': done(),
       }} onClick={() => setShow(true)}>
-        {dt().toLocaleString('default', {day: 'numeric', month: 'short' })}
+        {'Toime'}
         <Show when={!done() && hasChildren()}>
           <span class="text-gray-500">
 
-          <DepTracker node={props.node} />
+            <DepTracker node={props.node} />
           </span>
         </Show>
       </button>
       <Show when={show()}>
         <Dialog setShow={setShow}>
-          <DatePicker date={Temporal.PlainDate.from(dt())} node={props.node} />
+          <div>the Toime</div>
+          <Switch>
+            <Match when={!isDate()}>
+                <div class="grid grid-cols-4">
+                  <button>1hr</button>
+                  <button>2hr</button>
+                  <button>5hr</button>
+                  <button>1d</button>
+                  <button>2d</button>
+                  <button>1w</button>
+                  <button>2w</button>
+                  <button>1m</button>
+                  <button>2m</button>
+                  <button>3m</button>
+                </div>
+            </Match>
+            <Match when={isDate()}>
+              <div class="flex flex-col gap-4 text-base text-black/50">
+                <div>
+                  <div class="grid grid-cols-6 gap-x-1">
+                    <For each={[...Array(12).keys()]}>
+                      {(i) => <button onClick={() => {
+                        setWindow(window().with({ month: i + 1 }))
+                      }} classList={{
+                        'border': i + 1 === now().month,
+                        underline: i + 1 === window().month,
+                        'font-bold text-black': i + 1 === props.date.month,
+                      }}>{months[i]}</button>}
+                    </For>
+                  </div>
+
+                  <div class="grid grid-cols-7 gap-1">
+                    <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
+                      {(i) => <div />}
+                    </For>
+                    <For each={[...Array(window().daysInMonth).keys()]}>
+                      {(i) =>
+                        <button classList={{
+                          'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
+                          'font-bold text-black': (i === props.date.day - 1),
+                        }} onClick={() => {
+                          props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
+                        }}>{`${i + 1}`.padStart(2, '0')}</button>}
+                    </For>
+                  </div>
+                </div>
+              </div>
+            </Match>
+          </Switch>
+
         </Dialog>
       </Show>
     </div>
@@ -203,5 +214,4 @@ export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
 
   return denominator() > 0 ? `[${numerator()}/${denominator()}]` : ''
 }
-
 
