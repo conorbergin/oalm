@@ -30,18 +30,6 @@ export const IMAGE = 'I'
 export const VIDEO = 'V'
 export const STEPSEQUENCER = 'S'
 
-
-export const insertSS = (s: Sel) => {
-    if (s.focus) return null
-    let m = new Y.Map()
-    m.set('S', '')
-    m.set('d', Y.Array.from(Array(16 * 8).fill(false)))
-
-    let p = s.node.parent
-    let i = p.parent.toArray().indexOf(p)
-    p.parent.insert(i + 1, [m])
-}
-
 export const createParagraph = (text: string): [Y.Map<any>, Y.Text] => {
     let f = new Y.Text(text)
     let m = new Y.Map()
@@ -175,20 +163,6 @@ export const deleteNode = (node) => {
     }
 }
 
-
-// const insertList = (s: Sel) => {
-//     if (s.focus) return
-//     if (s.node.parent.has(TEXT)) {
-//         let par = s.node.parent
-//         let [n, f] = createParagraph('')
-//         s.node = f
-//         s.offset = 0
-//         par.get(CONTENT).unshift([n])
-//     }
-// }
-
-
-
 export const insertParagraph = (s: Sel) => {
     if (s.focus) return null
     insertContent(s, ...createParagraph(''), true)
@@ -232,21 +206,6 @@ export const deleteContent = (s: Sel) => {
         s.node.delete(s.offset, 1)
     }
 }
-
-// const getPrevSection = (node: Y.Map<any>) => {
-//     if (node.get('role') !== 'section') return null
-//     let p = node.parent!
-//     let index = p.toArray().indexOf(node)
-//     if (index === 0) {
-//         return p.parent
-//     } else {
-//         let s = p.get(index - 1)
-//         while (s.get(CHILDREN).length > 0) {
-//             s = s.get(CHILDREN).get(s.get(CHILDREN).length - 1)
-//         }
-//         return s
-//     }
-// }
 
 const getLastContent = (node: Y.Map<any>): Y.Text => {
     switch (true) {
@@ -337,21 +296,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
     e.preventDefault()
     switch (e.inputType) {
         case 'insertText':
-            if (s.node.length === 0) {
-                switch (e.data) {
-                    case '#':
-                        addSection(s)
-                        break
-                    case '|':
-                        // replaceContent(s, createTable)
-                        break
-                    default:
-                        insertText(s, e.data!)
-                        break
-                }
-            } else {
-                insertText(s, e.data!)
-            }
+            insertText(s, e.data!)
             break
 
         case 'deleteContentBackward':
@@ -377,7 +322,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
                     s.node = t
 
                     p.doc!.transact(() => {
-                        p.get(CONTENT).delete(p.get(CONTENT).length-1, 1)
+                        p.get(CONTENT).delete(p.get(CONTENT).length - 1, 1)
                         p.get(CHILDREN).unshift([m])
                     })
                 } else {

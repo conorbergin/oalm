@@ -15,10 +15,8 @@ const BAD_TOKEN = 496
 import { Portal } from 'solid-js/web'
 import { CalendarView } from './Calendar'
 import { Pernot } from './Pernot'
-import { test } from './array-test'
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
-import { d } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
 
 export const App: Component = () => {
 
@@ -26,11 +24,6 @@ export const App: Component = () => {
     const [message, setMessage] = createSignal('')
     const [login, setLogin] = createSignal(false)
     const [user, setUser] = createSignal<null | User>(null)
-
-
-    test()
-
-
 
     let e: HTMLInputElement
     let p: HTMLInputElement
