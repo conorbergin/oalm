@@ -48,6 +48,20 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
     return [m, f]
 }
 
+const ROOT_NODE = 'root_node'
+const SECTION_NODE = 'section_node'
+const PAINT_NODE = 'paint'
+
+const getCursorContext = (s:Sel) => {
+    if (s.node.parent === s.root) {
+        return ROOT_NODE
+    } else if ((s.node.parent as Y.Map<any>).has(CHILDREN)) {
+        return SECTION_NODE
+    } else if ((s.node.parent as Y.Map<any>).has('paint')) {
+        return PAINT_NODE
+    }
+}
+
 const replaceContent = (s: Sel, m: Y.Map<any>, t: Y.Text) => {
     if (s.focus) return null
     if (s.node.parent.has(CHILDREN) || !s.node.parent.has(HEADING)) return
@@ -225,6 +239,7 @@ const getLastContent = (node: Y.Map<any>): Y.Text => {
             throw new Error('invalid node', node.toJSON())
     }
 }
+const getLastLocationInNode = (node : Y.Map<any>) => {}
 
 const moveSelBackward = (s: Sel) => {
     if (s.offset === 0) {
@@ -308,8 +323,9 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'insertParagraph':
-            // lists
-            if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
+            if (s.root === s.node.parent) {
+                insertParagraph(s)
+            } else if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
                 if (s.node.parent.parent.parent.has('&')) {
                     let m = new Y.Map()
                     let t = new Y.Text('')

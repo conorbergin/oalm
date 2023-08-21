@@ -2,7 +2,8 @@ import * as Y from "yjs"
 import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack, onCleanup, onMount, Show } from "solid-js"
 import * as Icons from "./Icons";
 
-import { drag,menu, EditorState } from './Editor'
+import { drag, EditorState, ContentContainer } from './Editor'
+import { yDeleteSelfFromArray } from "./utils";
 
 
 
@@ -34,7 +35,7 @@ function getSvgPathFromStroke(points: Array<[number, number]>) {
     return result
 }
 
-const useObservedArray = () => {}
+const useObservedArray = () => { }
 
 export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
@@ -198,33 +199,16 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
-    const handleDrag = (e) => {
-        drag(e, props.node, props.state, 'content')
-    }
-
-    const handleMenu = (e) => {
-        menu(
-            e,
-            props.node,
-            {
-                'delete': () => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node), 1)
-            }
-        )
-    }
-
+    const commands = [{ name: 'delete', run : () => yDeleteSelfFromArray(props.node) }]
 
     return (
         <>
-            <div ref={d} contentEditable={false} class="content flex" >
-
-                    <div>
-                        <button onPointerDown={handleDrag} onClick={handleMenu}>~</button>
-                    </div>
-                <div class="relative w-full">
+            <ContentContainer node={props.node} state={props.state} commands={commands}>
+                <div class="relative flex" contentEditable={false}>
                     <Show when={true}>
                         <div class="absolute top-0 right-0 flex gap-1">
                             <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
-                            <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()}/>
+                            <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
                             <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
                             <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
                             <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
@@ -234,13 +218,13 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                             <button onPointerDown={handleCanvasResize}>/</button>
                         </div>
                     </Show>
-                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => !locked() && (erase() ? getObjectUnderCursor(e) : handlePointerDown(e))}>
+                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => !locked() && (erase() ? getObjectUnderCursor(e) : handlePointerDown(e))}>
                         <For each={data()}>
                             {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
                         </For>
                     </svg>
                 </div>
-            </div>
+            </ContentContainer>
         </>
     )
 }

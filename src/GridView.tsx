@@ -151,8 +151,8 @@ export const GridView: Component<{ node: Y.Map<any> }> = (props) => {
 
   return (
     <>
-      <div class="flex justify-around">
-        <div class="grid gap-2" style={`grid-template-columns: repeat(${fields().length + 2}, minmax(auto, max-content)`} >
+      <div class="flex overflow-auto">
+        <div class="self-start grid gap-2" style={`grid-template-columns: repeat(${fields().length + 2}, minmax(auto, max-content)`} >
           <div class="font-bold">
             <Show when={props.node.has('!')}>
               <Codemirror ytext={props.node.get('!')} />

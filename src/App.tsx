@@ -53,7 +53,7 @@ export const App: Component = () => {
     }
 
     return (
-        <div class="fixed h-screen w-screen">
+        <>
 
             <Switch>
                 <Match when={user() && login()}>
@@ -61,8 +61,7 @@ export const App: Component = () => {
                     <UserView user={user()!} />
                 </Match>
                 <Match when={login()}>
-                    <button onClick={() => { setLogin(false) }}>Sign Out</button>
-                    <Pernot doc={{ id: 'default', secret: null }} />
+                    <Pernot doc={{ id: 'default', secret: null }} setLogin={setLogin} />
                 </Match>
                 <Match when={true}>
                     <div class="flex justify-center pt-12">
@@ -78,7 +77,7 @@ export const App: Component = () => {
                     </div>
                 </Match>
             </Switch>
-        </div>
+        </>
     )
 }
 

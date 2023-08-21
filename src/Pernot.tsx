@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
-import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on } from "solid-js";
+import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on, Setter } from "solid-js";
 import { StepSequencer, newPiece } from "./StepSequencer";
 import { Codemirror } from "./Codemirror";
 import { TableView } from "./Table";
@@ -34,7 +34,7 @@ import { Sel } from "./selection";
 
 
 
-export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }, user: User }> = (props) => {
+export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }, user: User, setLogin: Setter<boolean> }> = (props) => {
 
     const [synced, setSynced] = createSignal(false)
     const [calendar, setCalendar] = createSignal(false)
@@ -74,22 +74,28 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <>
             <Show when={synced()}>
-                <button class="ml-2 text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                <For each={path()}>
-                    {(item, index) => <Show when={index() === path().length - 1} fallback={<button class="font-bold m-1" onClick={() => {console.log(index());setPath(p => [...p.slice(0,index()+1)])}}>{item.get('!').toString()}</button>}>
-                        <Switch>
-                            <Match when={view() === 0}>
-                                <EditorView node={item} setPath={setPath} />
-                            </Match>
-                            <Match when={view() === 1}>
-                                <GridView node={item} />
-                            </Match>
-                            <Match when={view() === 2}>
-                                <CalendarView root={item} />
-                            </Match>
-                        </Switch>
-                    </Show>}
-                </For>
+                <div style='display:grid;grid-template-rows: 2rem 1fr' class='w-screen h-screen fixed'>
+                    <div class='border-b'>
+                        <button onClick={() => props.setLogin(false)}>Sign out</button>
+                        <button class="ml-2 text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                    </div>
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() === path().length - 1} fallback={<button class="font-bold m-1" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button>}>
+                            <Switch>
+                                <Match when={view() === 0}>
+                                    <EditorView node={item} setPath={setPath} />
+                                </Match>
+                                <Match when={view() === 1}>
+                                    <GridView node={item} />
+                                </Match>
+                                <Match when={view() === 2}>
+                                    <CalendarView root={item} />
+                                </Match>
+                            </Switch>
+                        </Show>}
+                    </For>
+
+                </div>
             </Show >
         </>
     )

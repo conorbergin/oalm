@@ -3,7 +3,9 @@ import * as Tone from 'tone'
 import { MidiNote, Note } from 'tone/build/esm/core/type/NoteUnits'
 import * as Y from 'yjs'
 
-import { EditorState, TextView, drag, menu } from './Editor'
+import { yDeleteSelfFromArray } from './utils'
+
+import { EditorState, TextView, drag, ContentContainer } from './Editor'
 
 import * as d3 from 'd3-selection'
 import { a } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
@@ -42,13 +44,13 @@ const pitchInScale = (scale: number, pitch: number) => {
 
 export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
-    
-    
+
+
     const chorus = new Tone.Chorus(4, 2.5, 0.5).toDestination()
     const inst = chorus
-    
+
     const polySynth = new Tone.PolySynth(Tone.FMSynth).connect(chorus)
-    
+
     polySynth.set({
         "harmonicity": 6,
         "modulationIndex": 2,
@@ -71,8 +73,8 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
             "release": 0.2
         }
     })
-    
-    
+
+
     const [parts, setParts] = createSignal(props.node.get('parts').toArray())
     const [bpm, setBpm] = createSignal(props.node.get('bpm'))
     const [steps, setSteps] = createSignal(props.node.get('length'))
@@ -231,81 +233,72 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
 
     const sw = 1
 
-    const handleDrag = (e: PointerEvent) => {
-        drag(e, props.node, props.state, 'content')
-    }
+    const commands = [
+        { name: 'delete', run: () => yDeleteSelfFromArray(props.node) }
+    ]
 
-    const handleMenu = (e: PointerEvent) => {
-        menu(
-            e,
-            props.node,
-            {
-                'delete': () => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node), 1)
-            }
-        )
-    }
 
     return (
-        <div  contenteditable={false} class="flex flex-col content">
-
-            <div class="flex gap-1">
-                <button contenteditable={false} onPointerDown={handleDrag} onClick={handleMenu} >~</button>
-                <button contenteditable={false} class="bg-neutral-200" onClick={() => { setPlaying(p => !p) }}>{playing() ? 'Stop' : 'Play'}</button>
-                <input class="w-16" type="number" min="30" max="240" value={bpm()} onChange={(e) => props.node.set('bpm',e.target.valueAsNumber)} />
-                <select onChange={(e) => setNoteGrid(parseFloat(e.target.value))}>
-                    <option value='1' >1/1</option>
-                    <option value='0.5' >1/2</option>
-                    <option value='0.25' selected>1/4</option>
-                    <option value='0.125'>1/8</option>
-                </select>
-                <select onChange={(e) => setScale(parseFloat(e.target.value))}>
-                    <option value={0} >C/Am</option>
-                    <option value={1} >G/Em</option>
-                    <option value={2} >D/Bm</option>
-                    <option value={3} >A/F#m</option>
-                    <option value={4} >E/C#m</option>
-                    <option value={5} >B/G#m</option>
-                    <option value={6} >F#/D#m</option>
-                    <option value={7} >Db/Bbm</option>
-                    <option value={8} >Ab/Fm</option>
-                    <option value={9} >Eb/Cm</option>
-                    <option value={10} >Bb/Gm</option>
-                    <option value={11} >F/Dm</option>
-                </select>
-                <input class="w-14" type="number" min="4" max="64" value={steps()} onChange={(e) => props.node.set('length',e.target.valueAsNumber)} />
-                <For each={parts()}>
-                    {(p, index) => <>
-                        <button classList={{ 'font-bold': index() === activePart() }} onClick={() => setActivePart(index())}>{p.get('instrument')}</button>
-                        <button onClick={() => props.node.get('parts').delete(index())}>-</button>
-                    </>}
-                </For>
-                <button onClick={() => props.node.get('parts').push([newPart()])}>+</button>
-            </div>
-            <Show when={!flip()}>
-                <div class=" overflow-scroll max-h-96">
-                    <svg viewBox={`-1 -1 ${steps() * aspect() + 2} ${pitchWidth()}`} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave} onClick={handleClick}>
-                        <For each={[...Array(pitchWidth()).keys()]}>
-                            {(n) =>
-                                <Show when={pitchInScale(scale(), n)}>
-                                    <line y1={n} x1={0} y2={n} x2={steps() * aspect()} stroke={(n + 7 * scale()) % 12 === 0 ? "gray" : "lightgray"} stroke-width={sw} vector-effect="non-scaling-stroke" stroke-dasharray="1,1" />
-                                </Show>
-                            }
-                        </For>
-                        <For each={[...Array((1 / noteGrid()) * steps() + 1).keys()]}>
-                            {(n, index) => (
-                                <line x1={n * noteGrid() * aspect()} y1={0} x2={n * noteGrid() * aspect()} y2={pitchWidth()} stroke={index() % Math.round(1 / noteGrid()) === 0 ? "gray" : "lightgray"} stroke-width={sw} stroke-dasharray="1,1" vector-effect="non-scaling-stroke" />
-                            )}
-                        </For>
-                        <For each={parts()}>
-                            {(p, index) => <Part node={p} active={index() === activePart()} />}
-                        </For>
-                        <Show when={mouseOver()}>
-                            <circle cx={Math.round(coords()[0] / (aspect() * noteGrid())) * aspect() * noteGrid()} cy={Math.round(coords()[1])} r={0.5} fill="red" />
-                        </Show>
-                    </svg>
+        <ContentContainer node={props.node} state={props.state} commands={commands}>
+            <div contentEditable={false} class="flex flex-col">
+                <div class="flex gap-1">
+                    <button contenteditable={false} class="bg-neutral-200" onClick={() => { setPlaying(p => !p) }}>{playing() ? 'Stop' : 'Play'}</button>
+                    <input class="w-16" type="number" min="30" max="240" value={bpm()} onChange={(e) => props.node.set('bpm', e.target.valueAsNumber)} />
+                    <select onChange={(e) => setNoteGrid(parseFloat(e.target.value))}>
+                        <option value='1' >1/1</option>
+                        <option value='0.5' >1/2</option>
+                        <option value='0.25' selected>1/4</option>
+                        <option value='0.125'>1/8</option>
+                    </select>
+                    <select onChange={(e) => setScale(parseFloat(e.target.value))}>
+                        <option value={0} >C/Am</option>
+                        <option value={1} >G/Em</option>
+                        <option value={2} >D/Bm</option>
+                        <option value={3} >A/F#m</option>
+                        <option value={4} >E/C#m</option>
+                        <option value={5} >B/G#m</option>
+                        <option value={6} >F#/D#m</option>
+                        <option value={7} >Db/Bbm</option>
+                        <option value={8} >Ab/Fm</option>
+                        <option value={9} >Eb/Cm</option>
+                        <option value={10} >Bb/Gm</option>
+                        <option value={11} >F/Dm</option>
+                    </select>
+                    <input class="w-14" type="number" min="4" max="64" value={steps()} onChange={(e) => props.node.set('length', e.target.valueAsNumber)} />
+                    <For each={parts()}>
+                        {(p, index) => <>
+                            <button classList={{ 'font-bold': index() === activePart() }} onClick={() => setActivePart(index())}>{p.get('instrument')}</button>
+                            <button onClick={() => props.node.get('parts').delete(index())}>-</button>
+                        </>}
+                    </For>
+                    <button onClick={() => props.node.get('parts').push([newPart()])}>+</button>
                 </div>
-            </Show>
-        </div>
+                <Show when={!flip()}>
+                    <div class=" overflow-scroll max-h-96">
+                        <svg viewBox={`-1 -1 ${steps() * aspect() + 2} ${pitchWidth()}`} onPointerMove={handlePointerMove} onPointerLeave={handlePointerLeave} onClick={handleClick}>
+                            <For each={[...Array(pitchWidth()).keys()]}>
+                                {(n) =>
+                                    <Show when={pitchInScale(scale(), n)}>
+                                        <line y1={n} x1={0} y2={n} x2={steps() * aspect()} stroke={(n + 7 * scale()) % 12 === 0 ? "gray" : "lightgray"} stroke-width={sw} vector-effect="non-scaling-stroke" stroke-dasharray="1,1" />
+                                    </Show>
+                                }
+                            </For>
+                            <For each={[...Array((1 / noteGrid()) * steps() + 1).keys()]}>
+                                {(n, index) => (
+                                    <line x1={n * noteGrid() * aspect()} y1={0} x2={n * noteGrid() * aspect()} y2={pitchWidth()} stroke={index() % Math.round(1 / noteGrid()) === 0 ? "gray" : "lightgray"} stroke-width={sw} stroke-dasharray="1,1" vector-effect="non-scaling-stroke" />
+                                )}
+                            </For>
+                            <For each={parts()}>
+                                {(p, index) => <Part node={p} active={index() === activePart()} />}
+                            </For>
+                            <Show when={mouseOver()}>
+                                <circle cx={Math.round(coords()[0] / (aspect() * noteGrid())) * aspect() * noteGrid()} cy={Math.round(coords()[1])} r={0.5} fill="red" />
+                            </Show>
+                        </svg>
+                    </div>
+                </Show>
+            </div>
+        </ContentContainer>
 
     )
 }

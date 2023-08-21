@@ -3,6 +3,7 @@ import type * as Y from 'yjs'
 
 
 export type Sel = {
+    root: Y.Map<any>,
     node: Y.Text | Y.XmlText,
     offset: number,
     focus: {
