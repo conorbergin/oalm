@@ -3,10 +3,12 @@
 import { Component, createSignal, For, onCleanup, Show, Switch, Match } from "solid-js";
 import * as Y from "yjs";
 import { Codemirror } from "./Codemirror";
-import { Dialog} from "./Dialog";
+import { Dialog } from "./Dialog";
 import { SwitchNode } from "./Pernot";
-import { genId } from "./utils";
+import { genId, yArraySignal } from "./utils";
 import * as Icons from "./Icons";
+
+import { TextView2 } from "./Text";
 
 const alpha = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
@@ -97,24 +99,22 @@ export const Field: Component<{ node: Y.Map<any>, fields: Array<Y.Map<any>> }> =
   return (
     <>
       <div>
-        <button onClick={() => setShow(true)}>{name()}</button>
+        {/* <button onClick={() => setShow(true)}>{name()}</button> */}
+        <TextView2 node={props.node.get('name')} tag={'p'} />
       </div>
       <Show when={show()}>
-        <Dialog setShow={setShow}>
-          <div>
-            <Codemirror ytext={props.node.get('name')} />
-            <Switch >
-              <Match when={props.node.has('type') && props.node.get('type') === 'option'}>
-                <OptionList node={props.node} />
-              </Match>
-              <Match when={props.node.has('type') && props.node.get('type') === 'function'}>
-                <FunctionEditor node={props.node} fields={props.fields} />
-              </Match>
-            </Switch>
-
-            <button onClick={() => setShow(false)}>Close</button>
-          </div>
-        </Dialog>
+        <dialog>
+          <Codemirror ytext={props.node.get('name')} />
+          <Switch >
+            <Match when={props.node.has('type') && props.node.get('type') === 'option'}>
+              <OptionList node={props.node} />
+            </Match>
+            <Match when={props.node.has('type') && props.node.get('type') === 'function'}>
+              <FunctionEditor node={props.node} fields={props.fields} />
+            </Match>
+          </Switch>
+          <button onClick={() => setShow(false)}>Close</button>
+        </dialog>
       </Show >
     </>
   )
@@ -126,37 +126,17 @@ export const GridView: Component<{ node: Y.Map<any> }> = (props) => {
     props.node.set("header", new Y.Array())
   }
 
-  const [fields, setFields] = createSignal([])
-  const [arr, setArr] = createSignal([])
+  const fields = yArraySignal(props.node.get('header'))
+  const arr = yArraySignal(props.node.get('&'))
 
   let [show, setShow] = createSignal(false)
 
-  let [showGraph, setShowGraph] = createSignal(false)
-
-
-
-  const f = () => setFields(props.node.get('header').toArray())
-  const g = () => setArr(props.node.get('&').toArray())
-
-  f()
-  g()
-
-  props.node.get('header').observe(f)
-  props.node.get('$').observe(g)
-  onCleanup(() => {
-    props.node.get('header').unobserve(f)
-    props.node.get('$').unobserve(g)
-  })
-
-
   return (
     <>
-      <div class="flex overflow-auto">
-        <div class="self-start grid gap-2" style={`grid-template-columns: repeat(${fields().length + 2}, minmax(auto, max-content)`} >
+      <div contentEditable={true} onBeforeInput={e => e.preventDefault()} class="flex overflow-auto">
+        <div contentEditable={false} class="self-start grid gap-2" style={`grid-template-columns: repeat(${fields().length + 2}, minmax(auto, max-content)`} >
           <div class="font-bold">
-            <Show when={props.node.has('!')}>
-              <Codemirror ytext={props.node.get('!')} />
-            </Show>
+            <TextView2 node={props.node.get('!')} tag={'p'} />
           </div>
           <For each={fields()}>
             {(item, index) => <div class="font-bold">
@@ -169,9 +149,7 @@ export const GridView: Component<{ node: Y.Map<any> }> = (props) => {
           <For each={arr()}>
             {(item, index) => <>
               <div>
-                <Show when={item.has('!')}>
-                  <Codemirror ytext={item.get('!')} />
-                </Show>
+                <TextView2 node={item.get('!')} tag={'p'} />
               </div>
               <For each={fields()}>
                 {(field) => <>
@@ -205,22 +183,17 @@ export const GridView: Component<{ node: Y.Map<any> }> = (props) => {
             <Icons.Plus />
           </button>
         </div>
-        <Show when={show()}>
-          <Dialog setShow={setShow}>
-            <div class="flex flex-col gap-2">
-              <div class="flex gap-2">
-                <button onClick={() => props.node.get('header').push([newField('text')])}>Text</button>
-                <button onClick={() => props.node.get('header').push([newField('number')])}>Number</button>
-                <button onClick={() => props.node.get('header').push([newField('option')])}>Option</button>
-                <button onClick={() => props.node.get('header').push([newField('function')])}>Function</button>
-              </div>
-              <div>
-                <button onClick={() => setShow(false)}>Close</button>
-              </div>
-            </div>
-          </Dialog>
-        </Show>
       </div>
+      <Show when={show()}>
+        <div class='dialog-bg' onClick={() => setShow(false)}>
+          <div class="flex flex-col gap-2 bg-white">
+            <button onClick={() => props.node.get('header').push([newField('text')])}>Text</button>
+            <button onClick={() => props.node.get('header').push([newField('number')])}>Number</button>
+            <button onClick={() => props.node.get('header').push([newField('option')])}>Option</button>
+            <button onClick={() => props.node.get('header').push([newField('function')])}>Function</button>
+          </div>
+        </div>
+      </Show>
     </>
   )
 }

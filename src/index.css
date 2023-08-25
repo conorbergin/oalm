@@ -30,3 +30,29 @@ button {
 button::selection {
     background: transparent;
 }
+
+dialog {
+    border-radius: 1rem;
+    z-index:11;
+    padding: 30px;
+}
+
+dialog::backdrop {
+    opacity: 0.25;
+    background-color: gray
+
+}
+
+.dialog-bg {
+    display: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: hsla(0, 0%, 22%, 0.1);
+    z-index: 10;
+}
+
+.dialog-fg {
+    display: absolute;
+}

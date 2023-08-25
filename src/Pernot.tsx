@@ -75,12 +75,15 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         <>
             <Show when={synced()}>
                 <div style='display:grid;grid-template-rows: 2rem 1fr' class='w-screen h-screen fixed'>
-                    <div class='border-b'>
+                    <div class='border-b flex'>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
                         <button class="ml-2 text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                        <For each={path()}>
+                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold m-1" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button></Show>}
+                        </For>
                     </div>
                     <For each={path()}>
-                        {(item, index) => <Show when={index() === path().length - 1} fallback={<button class="font-bold m-1" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button>}>
+                        {(item, index) => <Show when={index() === path().length - 1}>
                             <Switch>
                                 <Match when={view() === 0}>
                                     <EditorView node={item} setPath={setPath} />

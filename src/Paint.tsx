@@ -3,7 +3,7 @@ import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack,
 import * as Icons from "./Icons";
 
 import { drag, EditorState, ContentContainer } from './Editor'
-import { yDeleteSelfFromArray } from "./utils";
+import { yDeleteSelfFromArray, yArraySignal } from "./utils";
 
 
 
@@ -52,13 +52,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     const [showDialog, setShowDialog] = createSignal(null)
 
 
-    let [data, setData] = createSignal([])
-
-    const f = () => setData(props.node.get('paint').toArray())
-
-    f()
-    props.node.observeDeep(f)
-    // onCleanup(() =>  props.node.get('paint').unobserve(f))
+    const data = yArraySignal(props.node.get('paint'))
 
 
 
@@ -218,7 +212,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                             <button onPointerDown={handleCanvasResize}>/</button>
                         </div>
                     </Show>
-                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => !locked() && (erase() ? getObjectUnderCursor(e) : handlePointerDown(e))}>
+                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
                         <For each={data()}>
                             {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
                         </For>

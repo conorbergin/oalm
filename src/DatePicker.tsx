@@ -5,11 +5,6 @@ import * as Y from 'yjs'
 
 import { Temporal } from '@js-temporal/polyfill'
 
-import { Dialog } from './Dialog'
-
-
-
-
 // const clockFaceRotated = [
 //   '09', '10', '11', '12', '13', '14', '15',
 //   '08', '', '', '', '', '', '16',
@@ -100,8 +95,12 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
   const [show, setShow] = createSignal(false)
   const [done, setDone] = createSignal(false)
   const [hasChildren, setHasChildren] = createSignal(props.node.has('$'))
+  const [isDate, setIsDate] = createSignal(false)
 
   const [dt, setDT] = createSignal(null)
+
+  const [window, setWindow] = createSignal(Temporal.Now.plainDateISO())
+  const [now, setNow] = createSignal(Temporal.Now.plainDateISO())
 
 
   const f = () => {
@@ -111,14 +110,18 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
   }
 
 
+
   props.node.observe(f)
   onCleanup(() => props.node.unobserve(f))
 
+
+  let d
+
   return (
-    <div class="font-mono italic flex gap-2 align-top">
-      <button class="text-green-700 italic" classList={{
+    <>
+      <button contentEditable={false} class="text-green-700 italic" classList={{
         'line-through text-gray-500': done(),
-      }} onClick={() => setShow(true)}>
+      }} onClick={() => d.showModal()}>
         {'Toime'}
         <Show when={!done() && hasChildren()}>
           <span class="text-gray-500">
@@ -127,61 +130,59 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
           </span>
         </Show>
       </button>
-      <Show when={show()}>
-        <Dialog setShow={setShow}>
-          <div>the Toime</div>
-          <Switch>
-            <Match when={!isDate()}>
-                <div class="grid grid-cols-4">
-                  <button>1hr</button>
-                  <button>2hr</button>
-                  <button>5hr</button>
-                  <button>1d</button>
-                  <button>2d</button>
-                  <button>1w</button>
-                  <button>2w</button>
-                  <button>1m</button>
-                  <button>2m</button>
-                  <button>3m</button>
+      <dialog ref={d} onClick={() => d.close()}>
+        <div>the Toime</div>
+        <Switch>
+          <Match when={!isDate()}>
+            <div class="grid grid-cols-4">
+              <button>1hr</button>
+              <button>2hr</button>
+              <button>5hr</button>
+              <button>1d</button>
+              <button>2d</button>
+              <button>1w</button>
+              <button>2w</button>
+              <button>1m</button>
+              <button>2m</button>
+              <button>3m</button>
+            </div>
+          </Match>
+          <Match when={isDate()}>
+            <div class="flex flex-col gap-4 text-base text-black/50">
+              <div>
+                <div class="grid grid-cols-6 gap-x-1">
+                  <For each={[...Array(12).keys()]}>
+                    {(i) => <button onClick={() => {
+                      setWindow(window().with({ month: i + 1 }))
+                    }} classList={{
+                      'border': i + 1 === now().month,
+                      underline: i + 1 === window().month,
+                      'font-bold text-black': i + 1 === dt().month,
+                    }}>{months[i]}</button>}
+                  </For>
                 </div>
-            </Match>
-            <Match when={isDate()}>
-              <div class="flex flex-col gap-4 text-base text-black/50">
-                <div>
-                  <div class="grid grid-cols-6 gap-x-1">
-                    <For each={[...Array(12).keys()]}>
-                      {(i) => <button onClick={() => {
-                        setWindow(window().with({ month: i + 1 }))
-                      }} classList={{
-                        'border': i + 1 === now().month,
-                        underline: i + 1 === window().month,
-                        'font-bold text-black': i + 1 === props.date.month,
-                      }}>{months[i]}</button>}
-                    </For>
-                  </div>
 
-                  <div class="grid grid-cols-7 gap-1">
-                    <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
-                      {(i) => <div />}
-                    </For>
-                    <For each={[...Array(window().daysInMonth).keys()]}>
-                      {(i) =>
-                        <button classList={{
-                          'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
-                          'font-bold text-black': (i === props.date.day - 1),
-                        }} onClick={() => {
-                          props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
-                        }}>{`${i + 1}`.padStart(2, '0')}</button>}
-                    </For>
-                  </div>
+                <div class="grid grid-cols-7 gap-1">
+                  <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
+                    {(i) => <div />}
+                  </For>
+                  <For each={[...Array(window().daysInMonth).keys()]}>
+                    {(i) =>
+                      <button classList={{
+                        'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
+                        'font-bold text-black': (i === dt().day - 1),
+                      }} onClick={() => {
+                        props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
+                      }}>{`${i + 1}`.padStart(2, '0')}</button>}
+                  </For>
                 </div>
               </div>
-            </Match>
-          </Switch>
+            </div>
+          </Match>
+        </Switch>
 
-        </Dialog>
-      </Show>
-    </div>
+      </dialog>
+    </>
   )
 }
 

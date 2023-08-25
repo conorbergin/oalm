@@ -3,13 +3,14 @@ import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, o
 import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, addSection } from './input';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
 import { StepSequencer, newPiece } from './StepSequencer';
-import { TableView } from './Table';
+// import { TableView } from './Table';
 
 import { Embed } from './Embed';
+import { ParagraphView, TextView } from './Text';
 
 import { Paint } from './Paint';
 
-import { yDeleteSelfFromArray } from './utils';
+import { yDeleteSelfFromArray, yArraySignal } from './utils';
 
 
 export const [lock, setLock] = createSignal(false)
@@ -95,7 +96,7 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
                 moved = true
                 targetElement.style.display = 'none'
                 targetElement.insertAdjacentElement('afterend', dragShadow)
-                dragElement.classList.add('absolute', 'z-50','font-body')
+                dragElement.classList.add('absolute', 'z-50', 'font-body')
                 dragElement.style.width = rect.width - 20 + 'px'
                 dragElement.style.top = '0px'
                 dragElement.style.left = '0px'
@@ -189,23 +190,10 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
 
     let selection = {
         root: props.node,
-        node: props.node.get('!'),
+        node: props.node.get(TEXT),
         offset: 0,
         focus: null
     }
-
-    let yarr = props.node.get(CHILDREN)
-    let [arr, setArr] = createSignal([])
-
-
-    let f = () => { setArr(yarr.toArray()) }
-    f()
-    yarr.observe(f)
-    // onCleanup(() => { props.node.unobserve(f) })
-
-
-
-
 
     const [palette, setPalette] = createSignal(false)
     const [paletteCoords, setPaletteCoords] = createSignal({ x: 0, y: 0 })
@@ -271,32 +259,8 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
                 keydownHandler(e, selection)
                 selectionToDom(selection, state.domFromDoc)
             }} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
-                <div class="flex flex-col border">
-                    <div class="section flex flex-col" >
-                        <div class="font-bold text-xl p-1 pb-2">
-                            <TextView node={props.node} state={state} tag={`span`} />
-                            <div contentEditable={false} class="inline-block ml-4" >
-                                <MaybeDT node={props.node} />
-                            </div>
-                        </div>
-                        <div class="flex flex-col" >
-                            <div class="pl-1">
-                                <Show when={props.node.has(CONTENT)}>
-
-                                    <ContentView node={props.node.get(CONTENT)} state={state} />
-                                </Show>
-                            </div>
-
-                            <For each={arr()}>
-                                {(item, index) => <>
-
-                                    <SectionView node={item} state={state} depth={1} setPath={props.setPath} />
-                                </>
-                                }
-                            </For>
-                        </div>
-
-                    </div>
+                <div class="section flex flex-col" style='width: max(80ch);  margin: 0 auto' >
+                    <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} />
 
                 </div>
             </div >
@@ -346,12 +310,8 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     let [hidden, setHidden] = createSignal(false)
 
     const [done, setDone] = createSignal(false)
-    let yarr = props.node.get(CHILDREN)
-    let [arr, setArr] = createSignal(yarr.toArray())
-
-    let f = () => { setArr(yarr.toArray()) }
-    yarr.observe(f)
-    // onCleanup(() => { props.node.unobserve(f) })
+    const children = yArraySignal(props.node.get(CHILDREN))
+    const content = yArraySignal(props.node.get(CONTENT))
 
     const handleDrag = (e) => {
         drag(e, props.node, props.state, 'section')
@@ -377,28 +337,59 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                     </div>
                 </div>
             </Show>
-            <div ref={s} class="section flex" >
-                <div contentEditable={false} class='flex flex-col'>
-                    <button class="mt-1 text-gray-500 font-bold" onpointerdown={handleDrag} onClick={() => setMenu(true)} >*</button>
-                    <button class="m-1 mt-0 bg-gray-400/25 flex-1 rounded"></button>
-                </div>
-                <div>
-                    <div class="font-bold text-lg flex">
+            <div ref={s} class='flex flex-col' >
+                <div contentEditable={false} class='flex gap-1'>
 
-                        <TextView classList={{ 'text-gray-500': done() }} node={props.node} state={props.state} tag={`span`} />
-                        <div contentEditable={false} class="inline-block ml-4" >
+                    <div  >
+
+                        <button class="mt-1 text-gray-500 font-bold" onpointerdown={handleDrag} onClick={() => setMenu(true)} >*</button>
+                    </div>
+                    <span class="font-bold text-lg">
+                        <div contentEditable={true} style='display:inline-block' class='pr-2'>
+
+                            <TextView node={props.node} state={props.state} tag={`p`} />
+                        </div>
+                        <div  style='display:inline-block'>
+
                             <MaybeDT node={props.node} />
                         </div>
-                    </div>
-                    <Show when={!hidden()}>
+                    </span>
+                </div>
+                <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
+                    <div class='flex '>
+                        <div contentEditable={false} class='w-3 flex'>
+                            <button  class="m-1 mt-0 bg-gray-400/25 flex-1 rounded"></button>
+                        </div>
                         <div class="flex flex-col">
-                            <div class="pl-2">
-                                <Show when={props.node.has(CONTENT)}>
+                            <Show when={content().length > 0}>
+                                <div class="flex flex-col gap-1 pl-1">
+                                    <For each={content()}>
+                                        {(item, index) =>
+                                            <ErrorBoundary fallback={<button class="bg-red-700" onClick={() => props.node.delete(index())}>delete</button>}>
+                                                <Switch>
+                                                    <Match when={item.has('list')}>
+                                                        <ListView node={item} state={props.state} />
+                                                    </Match>
+                                                    <Match when={item.has('embed')}>
+                                                        <Embed node={item} state={props.state} />
+                                                    </Match>
+                                                    <Match when={item.has('bpm')}>
+                                                        <StepSequencer node={item} state={props.state} />
+                                                    </Match>
+                                                    <Match when={item.has(TEXT)}>
+                                                        <ParagraphView node={item} state={props.state} />
+                                                    </Match>
+                                                    <Match when={item.has('paint')}>
+                                                        <Paint state={props.state} node={item} />
+                                                    </Match>
+                                                </Switch>
+                                            </ErrorBoundary>
 
-                                    <ContentView node={props.node.get(CONTENT)} state={props.state} />
-                                </Show>
-                            </div>
-                            <For each={arr()}>
+                                        }
+                                    </For>
+                                </div>
+                            </Show>
+                            <For each={children()}>
                                 {(item, index) => <>
 
                                     <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} />
@@ -406,49 +397,13 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                                 }
                             </For>
                         </div>
-                    </Show>
-                </div>
+                    </div>
+                </Show>
             </div>
         </>
     )
 }
 
-export const ContentView: Component<{ node: Y.Array<any>, state: EditorState }> = (props) => {
-    let [arr, setArr] = createSignal([])
-    let f = () => setArr(props.node.toArray())
-    f()
-    props.node.observe(f)
-    // onCleanup(() => props.node.unobserve(f))
-
-    return (
-        <div class="flex flex-col gap-1">
-            <For each={arr()}>
-                {(item, index) =>
-                    <ErrorBoundary fallback={<button class="bg-red-700" onClick={() => props.node.delete(index())}>delete</button>}>
-                        <Switch>
-                            <Match when={item.has('list')}>
-                                <ListView node={item} state={props.state} />
-                            </Match>
-                            <Match when={item.has('embed')}>
-                                <Embed node={item} state={props.state} />
-                            </Match>
-                            <Match when={item.has('bpm')}>
-                                <StepSequencer node={item} state={props.state} />
-                            </Match>
-                            <Match when={item.has(TEXT)}>
-                                <ParagraphView node={item} state={props.state} />
-                            </Match>
-                            <Match when={item.has('paint')}>
-                                <Paint state={props.state} node={item} />
-                            </Match>
-                        </Switch>
-                    </ErrorBoundary>
-
-                }
-            </For>
-        </div>
-    )
-}
 
 export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState, commands: Array<{ name: string, run: () => void }> }> = (props) => {
     let r
@@ -484,7 +439,7 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
             </Show>
             <div ref={r} class="flex gap-1 content">
                 <div contentEditable={false}>
-                    <button class="font-bold text-gray-400 touch-none" onpointerdown={handleDrag} onClick={() => setMenu(true)}>~</button>
+                    <button class="font-bold text-gray-400 touch-none" onpointerdown={handleDrag} onClick={() => setMenu(true)}>-</button>
                 </div>
                 <div class='flex-1'>
                     {props.children}
@@ -495,67 +450,3 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
     )
 }
 
-export const ParagraphView = (props) => {
-
-    const commands = [
-        { name: 'delete', run: () => yDeleteSelfFromArray(props.node) }
-    ]
-
-    return (
-        <ContentContainer commands={commands} state={props.state} node={props.node}>
-            <TextView node={props.node} state={props.state} tag='p' />
-        </ContentContainer>
-    )
-}
-
-export function highlight(str: string) {
-
-    if (str === '') {
-        return '<br>'
-    }
-    let r = str
-
-    // Bold and italic
-    const boldRegex = /(?<!\S)(\*\S.*?\S\*)(?!\S)/g;
-    r = r.replace(boldRegex, '<span class="font-bold">$1</span>');
-
-    const italicRegex = /(?<!\S)(_\S.*?\S_)(?!\S)/g;
-    r = r.replace(italicRegex, '<span class="font-italic">$1</span>');
-
-    // Links
-    const linkRegex = /\[[^\]]+\]\[^\s]+/g;
-    r = r.replace(linkRegex, '<span data-link="" class="text-blue-800">$1</span>');
-
-    // Headings
-    const headingRegex = /^(#{1,6})\s+(.*)$/gm;
-    r = r.replace(headingRegex, (match, level, content) => {
-        const headingLevel = level.length;
-        return `<span class="text-red-800">${level} ${content}</span>`;
-    });
-
-    return r;
-
-
-
-}
-
-export const TextView: Component<{ node: Y.Map<any>, state: EditorState, tag: string }> = (props) => {
-
-    let s
-    let el = document.createElement(props.tag)
-
-    let { docFromDom, domFromDoc } = props.state
-
-    let node = props.node.get(TEXT)
-    s = node.toString()
-    docFromDom.set(el, node)
-    domFromDoc.set(node, el)
-    el.innerHTML = highlight(s)
-    let update = () => { el.innerHTML = highlight(node.toString()) }
-    node.observe(update)
-
-    // onCleanup(() => {
-    //     node.unobserve(update)
-    // })
-    return el
-}

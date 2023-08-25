@@ -3,7 +3,7 @@ import * as Tone from 'tone'
 import { MidiNote, Note } from 'tone/build/esm/core/type/NoteUnits'
 import * as Y from 'yjs'
 
-import { yDeleteSelfFromArray } from './utils'
+import { yDeleteSelfFromArray, yArraySignal, ySignal } from './utils'
 
 import { EditorState, TextView, drag, ContentContainer } from './Editor'
 
@@ -23,6 +23,7 @@ const keys = ['A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5']
 export const newPiece = () => {
     const m = new Y.Map()
     m.set('bpm', 140)
+    m.set('length', 16)
     let p = newPart()
     let a = Y.Array.from([p])
     m.set('parts', a)
@@ -75,9 +76,9 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
     })
 
 
-    const [parts, setParts] = createSignal(props.node.get('parts').toArray())
-    const [bpm, setBpm] = createSignal(props.node.get('bpm'))
-    const [steps, setSteps] = createSignal(props.node.get('length'))
+    const parts = yArraySignal(props.node.get('parts'))
+    const bpm = ySignal(props.node, 'bpm')
+    const steps = ySignal(props.node, 'length')
 
 
     const [activePart, setActivePart] = createSignal(0)
@@ -96,25 +97,8 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
 
 
 
+    createEffect(() => Tone.Transport.bpm.value = bpm())
 
-    Tone.Transport.bpm.value = props.node.get('bpm')
-
-
-    const f = () => {
-        setBpm(props.node.get('bpm'))
-        Tone.Transport.bpm.value = props.node.get('bpm')
-        setSteps(props.node.get('length'))
-    }
-    const g = () => {
-        setParts(props.node.get('parts').toArray())
-    }
-    props.node.observe(f)
-    props.node.get('parts').observe(g)
-    // onCleanup(() => {
-    //     props.node.has('parts') && props.node.get('parts').unobserve(g)
-    //     console.log(props.node.toJSON())
-    //     props.node.unobserve(f)
-    // })
 
 
     const parseBeat = (time: string) => {
@@ -123,13 +107,15 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
     }
 
 
-    const nArray = (n: Y.Map<any>) => Array.from(n.get('notes').keys()).map((k: string) => {
-        const [time, pitch] = k.split('~')
-        return { time, pitch, length: n.get('notes').get(k) }
-    }).sort((a: any, b: any) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds())
-
 
     const Part: Component<{ node: Y.Map<any>, active: boolean }> = (props) => {
+
+
+        const nArray = (n: Y.Map<any>) => Array.from(n.get('notes').keys()).map((k: string) => {
+            const [time, pitch] = k.split('~')
+            return { time, pitch, length: n.get('notes').get(k) }
+        }).sort((a: any, b: any) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds())
+
 
         const p = new Tone.Part((time, note) => {
             console.log(note)
@@ -283,7 +269,7 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
                                     </Show>
                                 }
                             </For>
-                            <For each={[...Array((1 / noteGrid()) * steps() + 1).keys()]}>
+                            <For each={[...Array(Math.round((1 / noteGrid()) * steps() + 1)).keys()]}>
                                 {(n, index) => (
                                     <line x1={n * noteGrid() * aspect()} y1={0} x2={n * noteGrid() * aspect()} y2={pitchWidth()} stroke={index() % Math.round(1 / noteGrid()) === 0 ? "gray" : "lightgray"} stroke-width={sw} stroke-dasharray="1,1" vector-effect="non-scaling-stroke" />
                                 )}
