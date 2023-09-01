@@ -1,4 +1,4 @@
-import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter } from 'solid-js'
+import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
 import { deriveUser, getKeychain, putKeychain, hello, User, authenticate, createNotebook, register, createKeychain } from './service'
 
@@ -54,29 +54,31 @@ export const App: Component = () => {
 
     return (
         <>
+            <ErrorBoundary fallback={err => err}>
 
-            <Switch>
-                <Match when={user() && login()}>
-                    <button onClick={() => { setUser(null); setLogin(false) }}>Sign Out</button>
-                    <UserView user={user()!} />
-                </Match>
-                <Match when={login()}>
-                    <Pernot doc={{ id: 'default', secret: null }} setLogin={setLogin} />
-                </Match>
-                <Match when={true}>
-                    <div class="flex justify-center pt-12">
-                        <div class="flex flex-col gap-4 w-96" >
-                            <h1 class="text-6xl font-script text-center">Pernote</h1>
-                            <span >{message()}</span>
-                            <input class="border-b border-black p-2" ref={e} type="email" placeholder="email" />
-                            <input class="border-b border-black p-2" ref={p} type="password" placeholder="password" />
-                            <div class="flex gap-2"><input ref={c} type="checkbox" textContent="save details" />Save data locally (I own this computer)</div>
-                            <button onClick={handleSubmit}>Sign In / Register</button>
-                            <button onClick={() => { setLogin(true) }}>Continue as Guest</button>
+                <Switch>
+                    <Match when={user() && login()}>
+                        <button onClick={() => { setUser(null); setLogin(false) }}>Sign Out</button>
+                        <UserView user={user()!} />
+                    </Match>
+                    <Match when={login()}>
+                        <Pernot doc={{ id: 'default', secret: null }} setLogin={setLogin} />
+                    </Match>
+                    <Match when={true}>
+                        <div class="flex justify-center pt-12">
+                            <div class="flex flex-col gap-4 w-96" >
+                                <h1 class="text-6xl font-script text-center">Pernote</h1>
+                                <span >{message()}</span>
+                                <input class="border-b border-black p-2" ref={e} type="email" placeholder="email" />
+                                <input class="border-b border-black p-2" ref={p} type="password" placeholder="password" />
+                                <div class="flex gap-2"><input ref={c} type="checkbox" textContent="save details" />Save data locally (I own this computer)</div>
+                                <button onClick={handleSubmit}>Sign In / Register</button>
+                                <button onClick={() => { setLogin(true) }}>Continue as Guest</button>
+                            </div>
                         </div>
-                    </div>
-                </Match>
-            </Switch>
+                    </Match>
+                </Switch>
+            </ErrorBoundary>
         </>
     )
 }

@@ -255,8 +255,8 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         selectionFromDom(selection, state.docFromDom)
         console.log(selection)
 
-        // keydownHandler(e, selection)
-        // selectionToDom(selection, state.domFromDoc)
+        keydownHandler(e, selection)
+        selectionToDom(selection, state.domFromDoc)
     }
 
 
