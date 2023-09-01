@@ -55,15 +55,14 @@ export const App: Component = () => {
     return (
         <>
             <ErrorBoundary fallback={err => err}>
-
-                <Switch>
+                {/* <Switch>
                     <Match when={user() && login()}>
                         <button onClick={() => { setUser(null); setLogin(false) }}>Sign Out</button>
                         <UserView user={user()!} />
                     </Match>
-                    <Match when={login()}>
+                    <Match when={login()}> */}
                         <Pernot doc={{ id: 'default', secret: null }} setLogin={setLogin} />
-                    </Match>
+                    {/* </Match>
                     <Match when={true}>
                         <div class="flex justify-center pt-12">
                             <div class="flex flex-col gap-4 w-96" >
@@ -77,7 +76,7 @@ export const App: Component = () => {
                             </div>
                         </div>
                     </Match>
-                </Switch>
+                </Switch> */}
             </ErrorBoundary>
         </>
     )
