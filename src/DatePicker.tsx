@@ -167,6 +167,12 @@ export const DateSelector: Component<{date:any,node:Y.Map<any>}> = (props) => {
       </div>
       <Switch>
         <Match when={props.date.type === TASK}>
+          <div>
+            Duration:
+            <select>
+              
+            </select>
+          </div>
 
         </Match>
         <Match when={props.date.type === 'date'}>

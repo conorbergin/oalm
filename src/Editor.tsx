@@ -3,8 +3,7 @@ import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, o
 import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, addSection } from './input';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
 import { Sequencer, newPiece } from './Sequencer';
-import { TableView } from './Table';
-import { newTable } from './table';
+import { TableView, newTable } from './Table';
 import { Embed } from './Embed';
 import { ParagraphView, TextView } from './Text';
 
