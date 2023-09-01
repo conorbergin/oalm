@@ -43,6 +43,12 @@ dialog::backdrop {
 
 }
 
+a {
+    color: darkcyan
+}
+
+code { background-color: bisque; font-family: 'InputMono'}
+
 .dialog-bg {
     display: fixed;
     top: 0;

@@ -3,7 +3,7 @@ import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack,
 import * as Icons from "./Icons";
 
 import { drag, EditorState, ContentContainer } from './Editor'
-import { yDeleteSelfFromArray, yArraySignal } from "./utils";
+import { yDeleteFromArray, yArraySignal } from "./utils";
 
 
 
@@ -193,7 +193,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
-    const commands = [{ name: 'delete', run : () => yDeleteSelfFromArray(props.node) }]
+    const commands = [{ name: 'delete', run : () => yDeleteFromArray(props.node) }]
 
     return (
         <>

@@ -10,6 +10,10 @@ export const fixer = (root : Y.Map<any>, id: string) => {
     root.set('id', id)
   }
 
+  // if (root.has('~')) {
+  //   root.delete('~')
+  // }
+
 
   if (!root.get(TEXT)) {
     console.log('fixer: no heading')
@@ -26,6 +30,14 @@ export const fixer = (root : Y.Map<any>, id: string) => {
     console.log('fixer: no children')
     root.set(CHILDREN, new Y.Array())
   }
+
+  root.get(CONTENT).forEach((e,index) => {
+
+    if (!(e instanceof Y.Map)) {
+      root.get(CONTENT).delete(index,1)
+    }
+  })
+
   root.get(CHILDREN).forEach(element => {
     fixer(element)
   })

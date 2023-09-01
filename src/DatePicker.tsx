@@ -4,6 +4,7 @@ import * as Y from 'yjs'
 
 
 import { Temporal } from '@js-temporal/polyfill'
+import { ySignal } from './utils'
 
 // const clockFaceRotated = [
 //   '09', '10', '11', '12', '13', '14', '15',
@@ -63,6 +64,14 @@ Assignment:
 
 
 }
+
+
+type : begin | end | duration | begin&end | begin&duration | duration&end
+
+begin [x] [date] next soon someday
+duration [] [yr] [month] [week] [day] [hr] []
+end [x]
+
 */
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
@@ -78,7 +87,7 @@ export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
   return (
     <Show when={hasDT()} fallback={
       <button class="text-gray-300" onClick={() => {
-        props.node.set('~', Temporal.Now.plainDateISO().toString())
+        props.node.set('~', { begin: { kind: 'none' }, end: { kind: 'none' } })
       }}>set</button>
     }>
       <DTNode node={props.node} />
@@ -87,52 +96,126 @@ export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
 }
 
 
+const durationOptions = ['1w', '2w', '3w', '1m', '2m', '3m', '6m']
+const vagueOptions = ['next', 'soon', 'someday']
+const kindOptions = ['none', 'vague', 'date', 'duration']
+
+const DATEDATE = 'dd'
+const DATE = 'd'
+const TASK = 't'
 
 
 
 export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
 
-  const [show, setShow] = createSignal(false)
-  const [done, setDone] = createSignal(false)
-  const [hasChildren, setHasChildren] = createSignal(props.node.has('$'))
-  const [isDate, setIsDate] = createSignal(false)
 
-  const [dt, setDT] = createSignal(null)
-
-  const [window, setWindow] = createSignal(Temporal.Now.plainDateISO())
-  const [now, setNow] = createSignal(Temporal.Now.plainDateISO())
-
-
-  const f = () => {
-    setDT(props.node.get('~'))
-    setDone(props.node.get('done').toString() === 'true')
-    setHasChildren(props.node.has('&'))
-  }
+  const date = ySignal(props.node, '~')
 
 
 
-  props.node.observe(f)
-  onCleanup(() => props.node.unobserve(f))
-
-
-  let d
-
+  let r
   return (
     <>
-      <button contentEditable={false} class="text-green-700 italic" classList={{
-        'line-through text-gray-500': done(),
-      }} onClick={() => d.showModal()}>
+      <button contentEditable={false} class="text-green-700 " classList={{
+        'line-through text-gray-500': date().done,
+      }} onClick={() => r.showModal()}>
         {'Toime'}
-        <Show when={!done() && hasChildren()}>
+        <Show when={!date().done}>
           <span class="text-gray-500">
-
             <DepTracker node={props.node} />
           </span>
         </Show>
       </button>
-      <dialog ref={d} onClick={() => d.close()}>
-        <div>the Toime</div>
-        <Switch>
+      <dialog class='text-sm font-normal' ref={r} onClick={() => r.close()}>
+        <div onClick={e => e.stopImmediatePropagation()}>
+          <DateSelector date={date()} node={props.node}/>
+        </div>
+      </dialog>
+    </>
+  )
+}
+
+const TaskSelector: Component<{ date: any }> = (props) => {
+  return (
+    <>
+      <div class='flex gap-1'>
+        <div>Due:</div>
+        <For each={vagueOptions}>
+          {(item) => <button onClick={() => { }}>{item}</button>}
+        </For>
+        <input type='date'></input>
+      </div>
+      <div class='flex gap-1'>
+        <div>
+          Duration:
+        </div>
+        <For each={durationOptions}>
+          {(item) => <button>{item}</button>}
+        </For>
+      </div>
+    </>
+  )
+}
+
+export const DateSelector: Component<{date:any,node:Y.Map<any>}> = (props) => {
+
+  return (
+    <div class='flex-col gap-1 p-2'>
+      <div class='flex gap-2'>
+        <button onClick={() => props.node.set('~', { type: DATEDATE })}>date/date</button>
+        <button onClick={() => props.node.set('~', { type: TASK })}>task</button>
+      </div>
+      <Switch>
+        <Match when={props.date.type === TASK}>
+
+        </Match>
+        <Match when={props.date.type === 'date'}>
+          <div>
+            <div><input type='date' value={props.date.end} onChange={(e) => props.node.set('~', { type: props.date.type, begin: props.date.begin, end: e.target.value })} /> </div>
+          </div>
+        </Match>
+        <Match when={props.date.type === DATEDATE}>
+          <div>
+            <div>Begin: <input type='date' value={props.date.begin} onChange={(e) => props.node.set('~', { type: props.date.type, begin: e.target.value, end: props.date.end })} /></div>
+            <div>End: <input type='date' value={props.date.end} onChange={(e) => props.node.set('~', { type: props.date.type, begin: props.date.begin, end: e.target.value })} /></div>
+          </div>
+        </Match>
+      </Switch>
+    </div>
+  )
+}
+
+export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
+
+  const [children, setChildren] = createSignal(props.node.get('&').toArray())
+
+  const [numerator, setNumerator] = createSignal(0)
+  const [denominator, setDenominator] = createSignal(0)
+
+  const f = () => {
+    setChildren(props.node.get('&').toArray())
+    let n = 0, d = 0
+    props.node.get('$').forEach((dep) => {
+      if (dep.has('~')) {
+        d += 1
+        if (dep.get('~').status === 'done') {
+          n += 1
+        }
+      }
+    })
+    setNumerator(n)
+    setDenominator(d)
+  }
+
+  f()
+
+  props.node.observeDeep(f)
+  onCleanup(() => props.node.unobserveDeep(f))
+
+  return denominator() > 0 ? `[${numerator()}/${denominator()}]` : ''
+}
+
+/* <Switch>
           <Match when={!isDate()}>
             <div class="grid grid-cols-4">
               <button>1hr</button>
@@ -179,40 +262,4 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
               </div>
             </div>
           </Match>
-        </Switch>
-
-      </dialog>
-    </>
-  )
-}
-
-export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
-
-  const [children, setChildren] = createSignal(props.node.get('&').toArray())
-
-  const [numerator, setNumerator] = createSignal(0)
-  const [denominator, setDenominator] = createSignal(0)
-
-  const f = () => {
-    setChildren(props.node.get('$').toArray())
-    let n = 0, d = 0
-    props.node.get('$').forEach((dep) => {
-      if (dep.has('~')) {
-        d += 1
-        if (dep.has('done')) {
-          n += 1
-        }
-      }
-    })
-    setNumerator(n)
-    setDenominator(d)
-  }
-
-  f()
-
-  props.node.observeDeep(f)
-  onCleanup(() => props.node.unobserveDeep(f))
-
-  return denominator() > 0 ? `[${numerator()}/${denominator()}]` : ''
-}
-
+        </Switch> */

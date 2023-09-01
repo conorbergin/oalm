@@ -3,9 +3,9 @@ import * as Tone from 'tone'
 import { MidiNote, Note } from 'tone/build/esm/core/type/NoteUnits'
 import * as Y from 'yjs'
 
-import { yDeleteSelfFromArray, yArraySignal, ySignal } from './utils'
+import { yDeleteFromArray, yArraySignal, ySignal } from './utils'
 
-import { EditorState, TextView, drag, ContentContainer } from './Editor'
+import { EditorState, ContentContainer } from './Editor'
 
 import * as d3 from 'd3-selection'
 import { a } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
@@ -43,7 +43,7 @@ const pitchInScale = (scale: number, pitch: number) => {
 }
 
 
-export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
+export const Sequencer: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
 
 
@@ -74,6 +74,33 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
             "release": 0.2
         }
     })
+
+    const pizz = new Tone.PolySynth(Tone.MonoSynth).connect(chorus)
+
+    pizz.set({
+        "oscillator": {
+           "type": "sawtooth"
+       },
+       "filter": {
+           "Q": 3,
+           "type": "highpass",
+           "rolloff": -12
+       },
+       "envelope": {
+           "attack": 0.01,
+           "decay": 0.3,
+           "sustain": 0,
+           "release": 0.9
+       },
+       "filterEnvelope": {
+           "attack": 0.01,
+           "decay": 0.1,
+           "sustain": 0,
+           "release": 0.1,
+           "baseFrequency": 800,
+           "octaves": -1.2
+       }
+   })
 
 
     const parts = yArraySignal(props.node.get('parts'))
@@ -117,9 +144,13 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
         }).sort((a: any, b: any) => Tone.Time(a.time).toSeconds() - Tone.Time(b.time).toSeconds())
 
 
+
+
+
         const p = new Tone.Part((time, note) => {
             console.log(note)
-            polySynth.triggerAttackRelease(note.pitch, note.length, time)
+            let instrument = props.node.get('instrument') === 'pizz' ? pizz : polySynth
+            instrument.triggerAttackRelease(note.pitch, note.length, time)
         }, nArray(props.node))
 
         p.loopStart = 0
@@ -128,7 +159,6 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
 
 
         createEffect(() => p.loopEnd = `${steps()}m`)
-
 
         const [arr, setArr] = createSignal(nArray(props.node))
         arr().forEach((n: any) => console.log(n.time, Tone.Time(n.time).toSeconds()))
@@ -220,13 +250,13 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
     const sw = 1
 
     const commands = [
-        { name: 'delete', run: () => yDeleteSelfFromArray(props.node) }
+        { name: 'delete', run: () => yDeleteFromArray(props.node) }
     ]
 
 
     return (
         <ContentContainer node={props.node} state={props.state} commands={commands}>
-            <div contentEditable={false} class="flex flex-col">
+            <div contentEditable={false} class="flex flex-col boundary">
                 <div class="flex gap-1">
                     <button contenteditable={false} class="bg-neutral-200" onClick={() => { setPlaying(p => !p) }}>{playing() ? 'Stop' : 'Play'}</button>
                     <input class="w-16" type="number" min="30" max="240" value={bpm()} onChange={(e) => props.node.set('bpm', e.target.valueAsNumber)} />
@@ -250,7 +280,8 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
                         <option value={10} >Bb/Gm</option>
                         <option value={11} >F/Dm</option>
                     </select>
-                    <input class="w-14" type="number" min="4" max="64" value={steps()} onChange={(e) => props.node.set('length', e.target.valueAsNumber)} />
+                    <input class="w-14" type="number" min="4" max="64" value={steps()}  onChange={(e) => props.node.set('length', e.target.valueAsNumber)} />
+                    <button onClick={() => setFlip(f => !f)}>flip</button>
                     <For each={parts()}>
                         {(p, index) => <>
                             <button classList={{ 'font-bold': index() === activePart() }} onClick={() => setActivePart(index())}>{p.get('instrument')}</button>
@@ -281,6 +312,12 @@ export const StepSequencer: Component<{ node: Y.Map<any>, state: EditorState, co
                                 <circle cx={Math.round(coords()[0] / (aspect() * noteGrid())) * aspect() * noteGrid()} cy={Math.round(coords()[1])} r={0.5} fill="red" />
                             </Show>
                         </svg>
+                    </div>
+                </Show>
+                <Show when={flip()}>
+                    <div class='border'>
+                        <button onClick={() => props.node.get('parts').get(activePart()).set('instrument','pizz')}>pizz</button>
+                        <button onClick={() => props.node.get('parts').get(activePart()).set('instrument','synth')}>synth</button>
                     </div>
                 </Show>
             </div>

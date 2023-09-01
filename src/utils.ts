@@ -8,8 +8,17 @@ export const yIndex = (node: Y.AbstractType<any>): number => node.parent.toArray
 
 export const yKey = (node: Y.AbstractType<any>): string => node.parent.entries().find(([k, v]) => v === node)[0]
 
-export const yDeleteSelfFromArray = (node: Y.AbstractType<any>) => {
+export const yDeleteFromArray = (node: Y.AbstractType<any>) => {
     (node.parent as Y.Array<any>).delete((node.parent as Y.Array<any>).toArray().indexOf(node), 1)
+}
+
+export const yReplaceInArray = (oldNode: Y.AbstractType<any>, newNode: Y.AbstractType<any>) => {
+    const parent = oldNode.parent as Y.Array<any>
+    const index = parent.toArray().indexOf(oldNode)
+    Y.transact(oldNode.doc!, () => {
+        parent.delete(index, 1)
+        parent.insert(index,[newNode])
+    })
 }
 
 export const yReplace = (oldNode: Y.AbstractType<any>, newNode: Y.AbstractType<any>) => {
@@ -42,7 +51,7 @@ export const genId = (length: number) => {
 }
 
 
-export const yArraySignal = (a:Y.Array<any>) : Accessor<Array<any>> => {
+export const yArraySignal = (a: Y.Array<any>): Accessor<Array<any>> => {
     const [arr, setArr] = createSignal(a.toArray())
     const f = () => setArr(a.toArray())
     a.observe(f)
@@ -50,7 +59,7 @@ export const yArraySignal = (a:Y.Array<any>) : Accessor<Array<any>> => {
     return arr
 }
 
-export const ySignal = (node:Y.Map<any>, key:string): Accessor<any> => {
+export const ySignal = (node: Y.Map<any>, key: string): Accessor<any> => {
     const [sig, setSig] = createSignal(node.get(key) ?? null)
     const f = () => setSig(node.get(key) ?? null)
     node.observe(f)

@@ -52,7 +52,7 @@ const ROOT_NODE = 'root_node'
 const SECTION_NODE = 'section_node'
 const PAINT_NODE = 'paint'
 
-const getCursorContext = (s:Sel) => {
+const getCursorContext = (s: Sel) => {
     if (s.node.parent === s.root) {
         return ROOT_NODE
     } else if ((s.node.parent as Y.Map<any>).has(CHILDREN)) {
@@ -119,7 +119,7 @@ export const insertText = (s: Sel, text: string) => {
         s.node.insert(s.offset - text.length, text)
         return
     }
-    throw new Error('selection is not in a text node')
+    throw new Error('selection is not in a text node',s.node)
 }
 
 export const insertList = (s: Sel) => {
@@ -239,7 +239,7 @@ const getLastContent = (node: Y.Map<any>): Y.Text => {
             throw new Error('invalid node', node.toJSON())
     }
 }
-const getLastLocationInNode = (node : Y.Map<any>) => {}
+const getLastLocationInNode = (node: Y.Map<any>) => { }
 
 const moveSelBackward = (s: Sel) => {
     if (s.offset === 0) {
@@ -308,6 +308,7 @@ export const toggleArchive = (s: Sel) => {
 /* INPUT HANDLERS */
 
 export const beforeinputHandler = (e: InputEvent, s: Sel) => {
+    console.log(e.target)
     e.preventDefault()
     switch (e.inputType) {
         case 'insertText':
@@ -339,7 +340,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
 
                     p.doc!.transact(() => {
                         p.get(CONTENT).delete(p.get(CONTENT).length - 1, 1)
-                        p.get(CHILDREN).unshift([m])
+                        p?.parent?.parent.get(CHILDREN).insert(p.parent.parent.get(CHILDREN).toArray().indexOf(p)+1,[m])
                     })
                 } else {
                     let [n, f] = createParagraph('')

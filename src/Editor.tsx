@@ -2,15 +2,15 @@ import * as Y from 'yjs';
 import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, onMount, on, createEffect, Accessor, ErrorBoundary, createRenderEffect } from 'solid-js';
 import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, addSection } from './input';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
-import { StepSequencer, newPiece } from './StepSequencer';
-// import { TableView } from './Table';
-
+import { Sequencer, newPiece } from './Sequencer';
+import { TableView } from './Table';
+import { newTable } from './table';
 import { Embed } from './Embed';
 import { ParagraphView, TextView } from './Text';
 
 import { Paint } from './Paint';
 
-import { yDeleteSelfFromArray, yArraySignal } from './utils';
+import { yDeleteFromArray, yArraySignal, yReplaceInArray } from './utils';
 
 
 export const [lock, setLock] = createSignal(false)
@@ -23,6 +23,7 @@ import { setContext } from 'tone';
 const PARAGRAPH_HANDLE = ':'
 const HEADING_HANDLE = '#'
 const TABLE_HANDLE = ':'
+const BULLET = '•'
 
 
 const newPaint = () => {
@@ -244,50 +245,37 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         }
     }
 
+    const handleBeforeInput = (e) => {
+        selectionFromDom(selection, state.docFromDom)
+        beforeinputHandler(e, selection)
+        selectionToDom(selection, state.domFromDoc)
+    }
+
+    const handleKeyDown = (e) => {
+        selectionFromDom(selection, state.docFromDom)
+        console.log(selection)
+
+        // keydownHandler(e, selection)
+        // selectionToDom(selection, state.domFromDoc)
+    }
 
 
 
     return (
         <>
-
-            <div class="font-body editor overflow-auto flex" contenteditable={!lock()} spellcheck={false} onBeforeInput={(e) => {
-                selectionFromDom(selection, state.docFromDom)
-                beforeinputHandler(e, selection)
-                selectionToDom(selection, state.domFromDoc)
-            }} onKeyDown={(e) => {
-                selectionFromDom(selection, state.docFromDom)
-                keydownHandler(e, selection)
-                selectionToDom(selection, state.domFromDoc)
-            }} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+            <div class="font-body editor flex overflow-auto" contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onKeyDown={handleKeyDown} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <div class="section flex flex-col" style='width: max(80ch);  margin: 0 auto' >
-                    <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} />
+                    <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
 
                 </div>
             </div >
             <Show when={palette()}>
                 <div class="fixed top-0 left-0 w-screen h-screen bg-gray-400/25" onClick={() => setPalette(false)} >
-                    <div class='absolute bg-white p-1 flex border rounded' style={`top:${paletteCoords().y}px;left:${paletteCoords().x}px`}>
-                        <button onClick={() => {
-                            const index = selection.node.parent.parent.toArray().indexOf(selection.node.parent)
-                            Y.transact(props.node.doc!, () => {
-                                selection.node.parent.parent.delete(index)
-                                selection.node.parent.parent.insert(index, [newPaint()])
-                            })
-                        }}>Paint</button>
-                        <button onClick={() => {
-                            const index = selection.node.parent.parent.toArray().indexOf(selection.node.parent)
-                            Y.transact(props.node.doc!, () => {
-                                selection.node.parent.parent.delete(index)
-                                selection.node.parent.parent.insert(index, [newPiece()])
-                            })
-                        }}>Song</button>
-                        <button onClick={() => {
-                            const index = selection.node.parent.parent.toArray().indexOf(selection.node.parent)
-                            Y.transact(props.node.doc!, () => {
-                                selection.node.parent.parent.delete(index)
-                                selection.node.parent.parent.insert(index, [newEmbed()])
-                            })
-                        }}>Embed</button>
+                    <div class='absolute bg-white flex border rounded gap-1' style={`top:${paletteCoords().y}px;left:${paletteCoords().x}px`}>
+                        <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
+                        <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
+                        <button onClick={() => { yReplaceInArray(selection.node.parent, newEmbed()) }}>Embed</button>
+                        <button onClick={() => { yReplaceInArray(selection.node.parent, newTable('')[0]) }}>Table</button>
                     </div>
                 </div>
             </Show>
@@ -295,7 +283,35 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
     )
 }
 
-export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>> }> = (props) => {
+const HandleIcon:Component<{last:boolean,section:boolean,sprogs:boolean}> = (props) => {
+    return (
+        <svg style='shape-rendering:crisp-edges' width={props.last ? '17px':'16px'}  viewBox={`0 0 ${props.last ? '17' : '16'} 16`}>
+            <Show when={props.last}>
+                <line x1={0.5} y1={0} x2={0.5} y2={8} stroke-width={1} stroke='black'/>
+            </Show>
+            <line x1={0} y1={8.5} x2={3} y2={8.5} stroke-width={1} stroke='black'/>
+            <Show when={props.section} fallback={<circle cx={8.5} cy={8.5} r={3} fill='none' stroke='black'/> }>
+
+            <rect x={3.5} y={3.5} width={12} height={12} fill='none' stroke='black' stroke-width={1} shape-rendering='crispEdges'/>
+            </Show>
+        </svg>
+    )
+}
+
+const HandleIcon2:Component<{last:boolean,section:boolean,sprogs:boolean}> = (props) => {
+    return (
+        <div style='display:grid; grid-template-columns: 3px 5px 5px 3px; grid-template-rows: 9px 5px 5px 1fr;height:100%'>
+            <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{'border-l':props.last}} class='border-b'/>
+
+            <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{'rounded-full': !props.section}}/>
+
+            <div  style='grid-column-start:3;grid-row-start:4' classList={{'border-l' : props.sprogs}}/>
+
+        </div>
+    )
+}
+
+export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, last:boolean }> = (props) => {
 
     let s: HTMLElement
 
@@ -329,7 +345,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
             <Show when={menu()}>
                 <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-gray-400/25' onClick={() => setMenu(false)}>
                     <div class='absolute bg-white p-1 rounded border flex flex-col' style={`left:${coords().x}px;top:${coords().y}px`}>
-                        <button onClick={() => yDeleteSelfFromArray(props.node)} >delete</button>
+                        <button onClick={() => yDeleteFromArray(props.node)} >delete</button>
                         <button onClick={() => props.node.set('done', !props.node.get('done') ?? true)} >mark done</button>
                         <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
                         <button onClick={() => props.node.get('&').unshift([newSection()])} >+ child</button>
@@ -337,66 +353,60 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                     </div>
                 </div>
             </Show>
-            <div ref={s} class='flex flex-col' >
-                <div contentEditable={false} class='flex gap-1'>
+            <div ref={s} class='flex flex-col section l' classList={{'border-l':!props.last}}>
+                <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{'border-l':props.last}} contentEditable={false}><MaybeDT node={props.node}/></div>
+                <div  class='leading-none flex gap-1 font-bold text-lg'>
 
-                    <div  >
-
-                        <button class="mt-1 text-gray-500 font-bold" onpointerdown={handleDrag} onClick={() => setMenu(true)} >*</button>
+                    <div contentEditable={false} class='flex'>
+                        <button class="text-gray-500 font-bold flex" onpointerdown={handleDrag} onClick={() => setMenu(true)} >
+                            <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)}/>
+                        </button>
                     </div>
-                    <span class="font-bold text-lg">
-                        <div contentEditable={true} style='display:inline-block' class='pr-2'>
 
-                            <TextView node={props.node} state={props.state} tag={`p`} />
-                        </div>
-                        <div  style='display:inline-block'>
 
-                            <MaybeDT node={props.node} />
-                        </div>
-                    </span>
+                            <TextView node={props.node.get(TEXT)} state={props.state} tag={`p`} />
+       
                 </div>
                 <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
-                    <div class='flex '>
-                        <div contentEditable={false} class='w-3 flex'>
-                            <button  class="m-1 mt-0 bg-gray-400/25 flex-1 rounded"></button>
-                        </div>
-                        <div class="flex flex-col">
-                            <Show when={content().length > 0}>
-                                <div class="flex flex-col gap-1 pl-1">
-                                    <For each={content()}>
-                                        {(item, index) =>
-                                            <ErrorBoundary fallback={<button class="bg-red-700" onClick={() => props.node.delete(index())}>delete</button>}>
-                                                <Switch>
-                                                    <Match when={item.has('list')}>
-                                                        <ListView node={item} state={props.state} />
-                                                    </Match>
-                                                    <Match when={item.has('embed')}>
-                                                        <Embed node={item} state={props.state} />
-                                                    </Match>
-                                                    <Match when={item.has('bpm')}>
-                                                        <StepSequencer node={item} state={props.state} />
-                                                    </Match>
-                                                    <Match when={item.has(TEXT)}>
-                                                        <ParagraphView node={item} state={props.state} />
-                                                    </Match>
-                                                    <Match when={item.has('paint')}>
-                                                        <Paint state={props.state} node={item} />
-                                                    </Match>
-                                                </Switch>
-                                            </ErrorBoundary>
+                    <div class="flex flex-col pl-2">
+                        <Show when={content().length > 0}>
+                            <div class="flex flex-col">
+                                <For each={content()}>
+                                    {(item, index) =>
+                                        <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => props.node.get(CONTENT).delete(index())}>delete</button>}>
+                                            <Switch>
+                                                <Match when={item.has('list')}>
+                                                    <ListView node={item} state={props.state} />
+                                                </Match>
+                                                <Match when={item.has('embed')}>
+                                                    <Embed node={item} state={props.state} />
+                                                </Match>
+                                                <Match when={item.has('bpm')}>
+                                                    <Sequencer node={item} state={props.state} />
+                                                </Match>
+                                                <Match when={item.has(TEXT)}>
+                                                    <ParagraphView node={item} state={props.state} />
+                                                </Match>
+                                                <Match when={item.has('paint')}>
+                                                    <Paint state={props.state} node={item} />
+                                                </Match>
+                                                <Match when={item.has('header')}>
+                                                    <TableView node={item} state={props.state} />
+                                                </Match>
+                                            </Switch>
+                                        </ErrorBoundary>
 
-                                        }
-                                    </For>
-                                </div>
-                            </Show>
-                            <For each={children()}>
-                                {(item, index) => <>
+                                    }
+                                </For>
+                            </div>
+                        </Show>
+                        <For each={children()}>
+                            {(item, index) => <>
 
-                                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} />
-                                </>
-                                }
-                            </For>
-                        </div>
+                                <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length -1} />
+                            </>
+                            }
+                        </For>
                     </div>
                 </Show>
             </div>
@@ -431,15 +441,20 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
             <Show when={menu()}>
                 <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-gray-400/25 z-10' onClick={() => setMenu(false)}>
                     <div class='absolute p-1 bg-white border rounded' style={`left:${coords().x}px;top:${coords().y}px`}>
-                        <For each={props.commands}>
-                            {(command) => <button onClick={command.run} >{command.name}</button>}
-                        </For>
+                        <div class='flex-col'>
+
+                            <For each={props.commands}>
+                                {(command) => <div><button onClick={command.run} >{command.name}</button></div>}
+                            </For>
+                        </div>
                     </div>
                 </div>
             </Show>
             <div ref={r} class="flex gap-1 content">
                 <div contentEditable={false}>
-                    <button class="font-bold text-gray-400 touch-none" onpointerdown={handleDrag} onClick={() => setMenu(true)}>-</button>
+                    <button class="font-bold text-gray-400 touch-none border-l h-full flex" onpointerdown={handleDrag} onClick={() => setMenu(true)}>
+                        <HandleIcon2 last={false} section={false} sprogs={false}/>
+                    </button>
                 </div>
                 <div class='flex-1'>
                     {props.children}

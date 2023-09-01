@@ -4,33 +4,15 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
 import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on, Setter } from "solid-js";
-import { StepSequencer, newPiece } from "./StepSequencer";
-import { Codemirror } from "./Codemirror";
-import { TableView } from "./Table";
-import { Paint } from "./Paint";
+
 import { fixer } from "./fixer";
-import { TextNode } from "./Codemirror"
-import { NodeBar } from "./Toolbars";
-import { createTable } from "./table";
-import { Field } from "./Field";
 
-
-import { EditorView } from './Editor'
-import { GridView } from './GridView'
-
-import {
-    createElementSize,
-    createWindowSize,
-} from '@solid-primitives/resize-observer'
-
-
-import * as Icons from "./Icons";
-import { Portal } from "solid-js/web";
-import { DTNode, DTPicker, MaybeDT } from "./DatePicker";
 import { CalendarView } from "./Calendar";
+import { EditorView } from "./Editor";
+import { GridView } from "./GridView";
 import { getNotebook, User, putNotebook } from "./service";
-import { genId } from "./utils";
-import { Sel } from "./selection";
+import { undo } from "y-codemirror.next/dist/src/y-undomanager";
+
 
 
 
@@ -39,10 +21,11 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     const [synced, setSynced] = createSignal(false)
     const [calendar, setCalendar] = createSignal(false)
     const [path, setPath] = createSignal([])
-    const viewStates = ['Outline', 'Table', 'Timeline']
+    const viewStates = ['Outline', 'Timeline']
     const [view, setView] = createSignal(0)
 
     let ydoc = new Y.Doc()
+    let undoManager
 
     createEffect(() => {
         setSynced(false)
@@ -54,9 +37,21 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
             fixer(ydoc.getMap('root'), props.doc.id)
             console.log(ydoc.get('root').toJSON())
             setPath([ydoc.get('root')])
+            undoManager = new Y.UndoManager(ydoc.get('root'))
             setSynced(true)
         })
     })
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'z' && e.ctrlKey) {
+            e.preventDefault()
+            console.log('undo')
+            undoManager.undo()
+        } else if (e.key === 'y' && e.ctrlKey) {
+            e.preventDefault()
+            undoManager.redo()
+        }
+    }
 
     const handleSync = async () => {
         if (synced()) {
@@ -74,13 +69,19 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <>
             <Show when={synced()}>
-                <div style='display:grid;grid-template-rows: 2rem 1fr' class='w-screen h-screen fixed'>
-                    <div class='border-b flex'>
-                        <button onClick={() => props.setLogin(false)}>Sign out</button>
-                        <button class="ml-2 text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                        <For each={path()}>
-                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold m-1" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button></Show>}
-                        </For>
+                <div onKeyDown={handleKeyDown} class='grid w-full h-full fixed' style='grid-template-rows: min-content 1fr'>
+                    <div class='flex-col gap-2 p-1'>
+                        <div class='flex gap-2  border-b'>
+                            <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0,-1)])}>⮤</button>
+                            <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                            <button onClick={() => props.setLogin(false)}>Sign out</button>
+                        </div>
+                        {/* <div>
+
+                            <For each={path()}>
+                                {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button></Show>}
+                            </For>
+                        </div> */}
                     </div>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
@@ -89,15 +90,11 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                                     <EditorView node={item} setPath={setPath} />
                                 </Match>
                                 <Match when={view() === 1}>
-                                    <GridView node={item} />
-                                </Match>
-                                <Match when={view() === 2}>
                                     <CalendarView root={item} />
                                 </Match>
                             </Switch>
                         </Show>}
                     </For>
-
                 </div>
             </Show >
         </>
