@@ -263,7 +263,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
 
 
     return (
-        <>
+        <div class='overflow-y-scroll' style='overscroll-behaviour:contain'>
             <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
 
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
@@ -278,7 +278,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
                     </div>
                 </div>
             </Show>
-        </>
+        </div>
     )
 }
 
