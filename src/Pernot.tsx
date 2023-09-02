@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
-import { Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on, Setter } from "solid-js";
+import { onMount, Component, For, Show, Match, Switch, createSignal, onCleanup, createEffect, ErrorBoundary, on, Setter } from "solid-js";
 
 import { fixer } from "./fixer";
 
@@ -42,6 +42,11 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         })
     })
 
+    let g
+    onMount(() => {
+        fetch('commit-hash.txt').then((response) => response.text()).then((txt) => g.textContent = txt).catch(() => g.textContent = 'not found')
+    })
+
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'z' && e.ctrlKey) {
             e.preventDefault()
@@ -74,6 +79,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
+                        <span ref={g} class='text-orange-700' />
                     </div>
                     {/* <div>
 
@@ -81,18 +87,18 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                                 {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button></Show>}
                             </For>
                         </div> */}
-                <For each={path()}>
-                    {(item, index) => <Show when={index() === path().length - 1}>
-                        <Switch>
-                            <Match when={view() === 0}>
-                                <EditorView node={item} setPath={setPath} />
-                            </Match>
-                            <Match when={view() === 1}>
-                                <CalendarView root={item} />
-                            </Match>
-                        </Switch>
-                    </Show>}
-                </For>
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() === path().length - 1}>
+                            <Switch>
+                                <Match when={view() === 0}>
+                                    <EditorView node={item} setPath={setPath} />
+                                </Match>
+                                <Match when={view() === 1}>
+                                    <CalendarView root={item} />
+                                </Match>
+                            </Switch>
+                        </Show>}
+                    </For>
                 </div>
             </Show >
         </>
