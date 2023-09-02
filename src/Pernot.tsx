@@ -42,10 +42,6 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         })
     })
 
-    let g
-    onMount(() => {
-        fetch('commit-hash.txt').then((response) => response.text()).then((txt) => g.textContent = txt).catch(() => g.textContent = 'not found')
-    })
 
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'z' && e.ctrlKey) {
@@ -79,7 +75,6 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
-                        <span ref={g} class='text-orange-700' />
                     </div>
                     {/* <div>
 
