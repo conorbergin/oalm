@@ -69,33 +69,31 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <>
             <Show when={synced()}>
-                <div onKeyDown={handleKeyDown} class='flex flex-col'>
-                    <div class='flex-col gap-2 sticky top-0 left-0 bg-white z-10'>
-                        <div class='flex gap-2  border-b'>
-                            <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
-                            <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                            <button onClick={() => props.setLogin(false)}>Sign out</button>
-                        </div>
-                        {/* <div>
+                <div class='flex-col gap-2 fixed top-0 left-0 w-full bg-white z-10'>
+                    <div class='flex gap-2  border-b'>
+                        <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
+                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                        <button onClick={() => props.setLogin(false)}>Sign out</button>
+                    </div>
+                    {/* <div>
 
                             <For each={path()}>
                                 {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('!').toString()}</button></Show>}
                             </For>
                         </div> */}
-                    </div>
-                    <For each={path()}>
-                        {(item, index) => <Show when={index() === path().length - 1}>
-                            <Switch>
-                                <Match when={view() === 0}>
-                                    <EditorView node={item} setPath={setPath} />
-                                </Match>
-                                <Match when={view() === 1}>
-                                    <CalendarView root={item} />
-                                </Match>
-                            </Switch>
-                        </Show>}
-                    </For>
                 </div>
+                <For each={path()}>
+                    {(item, index) => <Show when={index() === path().length - 1}>
+                        <Switch>
+                            <Match when={view() === 0}>
+                                <EditorView node={item} setPath={setPath} />
+                            </Match>
+                            <Match when={view() === 1}>
+                                <CalendarView root={item} />
+                            </Match>
+                        </Switch>
+                    </Show>}
+                </For>
             </Show >
         </>
     )
