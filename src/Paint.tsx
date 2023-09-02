@@ -194,13 +194,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
-    const [selected, setSelected] = createSignal(false)
-    let p
-    document.onselectionchange = () => {
-        let s = document.getSelection()
-        setSelected(s?.anchorNode === p)
-    }
-
     onMount(() => {
         props.state.docFromDom.set(p,props.node)
         props.state.domFromDoc.set(props.node,p)
@@ -211,7 +204,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     return (
         <>
             <ContentContainer node={props.node} state={props.state} commands={commands}>
-                <div class="flex flex-col border" classList={{'border-black':selected()}}>
+                <div class="flex flex-col">
 
                     <div class='relative' contentEditable={false}>
                         <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
@@ -233,10 +226,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                             </div>
                         </Show>
                     </div>
-                    <div class='flex ml-3 h-1' style='caret-color:red'>
-                        <p ref={p}><br/></p>
-                    </div>
-
                 </div>
             </ContentContainer>
         </>

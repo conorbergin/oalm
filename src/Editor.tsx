@@ -248,7 +248,8 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         selectionFromDom(selection, state.docFromDom)
         beforeinputHandler(e, selection)
         selectionToDom(selection, state.domFromDoc)
-        state.domFromDoc.get(selection.node)?.scrollIntoView(true)
+        state.domFromDoc.get(selection.node)?.scrollIntoView({ block: 'nearest', inline: 'start' })
+        state.domFromDoc.get(selection.node)?.scrollIntoViewIfNeeded()
     }
 
     const handleKeyDown = (e) => {
