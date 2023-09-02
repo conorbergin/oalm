@@ -263,8 +263,8 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
 
 
     return (
-        <div class='overflow-y-scroll'>
-            <div class="font-body editor flex" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <>
+            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
 
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
@@ -278,7 +278,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
                     </div>
                 </div>
             </Show>
-        </div>
+        </>
     )
 }
 
@@ -299,7 +299,7 @@ const HandleIcon: Component<{ last: boolean, section: boolean, sprogs: boolean }
 
 const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
     return (
-        <div style='display:grid; grid-template-columns: 3px 5px 5px 3px; grid-template-rows: 9px 5px 5px 1fr;height:100%'>
+        <div style='display:grid; grid-template-columns: 3px 5px 5px 3px; grid-template-rows: 0.4rem 5px 5px 1fr;height:100%'>
             <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{ 'border-l': props.last }} class='border-b' />
 
             <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{ 'rounded-full': !props.section }} />

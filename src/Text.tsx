@@ -104,6 +104,15 @@ export const TextView: Component<{ node: Y.Text, state: EditorState, tag: string
     return el
 }
 
+export const NonTextView:Component<{node: Y.Map<any>,state:EditorState}> = (props) => {
+
+    const el = document.createElement('p')
+    el.innerHTML = '<br/>'
+    props.state.docFromDom.set(el,props.node)
+    props.state.domFromDoc.set(props.node,el)
+    return el
+}
+
 export const NumberView: Component<{node: Y.Map<any>, key:string}> = (props) => {
 
     return (

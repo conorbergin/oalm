@@ -9,7 +9,7 @@ import { yDeleteFromArray, yArraySignal } from "./utils";
 
 import { getStroke } from 'perfect-freehand'
 import { Dialog } from "./Dialog";
-import { TextView } from "./Text";
+import { NonTextView } from "./Text";
 const average = (a, b) => (a + b) / 2
 
 function getSvgPathFromStroke(points: Array<[number, number]>) {
@@ -201,6 +201,11 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         setSelected(s?.anchorNode === p)
     }
 
+    onMount(() => {
+        props.state.docFromDom.set(p,props.node)
+        props.state.domFromDoc.set(props.node,p)
+    })
+
     const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
     let ytext = new Y.Text('')
     return (
@@ -231,9 +236,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                     <div class='flex ml-3 h-1' style='caret-color:red'>
                         <p ref={p}><br/></p>
                     </div>
-                    {/* <div class='flex ml-3 h-1' style='caret-color:transparent' >
-                        <TextView node={ytext} state={props.state} tag='p'/>
-                    </div> */}
+
                 </div>
             </ContentContainer>
         </>

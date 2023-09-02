@@ -69,8 +69,8 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <>
             <Show when={synced()}>
-                <div onKeyDown={handleKeyDown} class='grid w-full h-full fixed' style='grid-template-rows: min-content 1fr'>
-                    <div class='flex-col gap-2 p-1'>
+                <div onKeyDown={handleKeyDown} class='flex flex-col'>
+                    <div class='flex-col gap-2 sticky top-0 left-0 bg-white z-10'>
                         <div class='flex gap-2  border-b'>
                             <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
                             <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>

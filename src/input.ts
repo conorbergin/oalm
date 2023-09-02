@@ -119,7 +119,7 @@ export const insertText = (s: Sel, text: string) => {
         s.node.insert(s.offset - text.length, text)
         return
     }
-    throw new Error('selection is not in a text node',s.node)
+    // throw new Error('selection is not in a text node',s.node)
 }
 
 export const insertList = (s: Sel) => {
@@ -282,28 +282,6 @@ const deleteContentBackward = (s: Sel) => {
     }
 }
 
-export const toggleDone = (s: Sel) => {
-    if (s.focus) return
-    if (s.node.parent.has(TEXT)) {
-        if (s.node.parent.has('done')) {
-            s.node.parent.delete('done')
-        } else {
-            s.node.parent.set('done', '')
-        }
-    }
-}
-
-export const toggleArchive = (s: Sel) => {
-    if (s.focus) return
-    if (s.node.parent.has(TEXT)) {
-        if (s.node.parent.has('r')) {
-            s.node.parent.delete('r')
-        } else {
-            s.node.parent.set('r', '')
-        }
-    }
-}
-
 
 /* INPUT HANDLERS */
 
@@ -316,6 +294,17 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'deleteContentBackward':
+            if (s.node instanceof Y.Map) {
+                let o = s.node
+                if (s.node.parent.toArray.indexOf(s.node) === 0) {
+                    s.node = s.node.parent?.parent?.get(TEXT)
+                    s.offset = s.node.length
+                } else {
+                    s.node = s.node.parent.get(s.node.parent.toArray().indexOf(s.node)-1)
+                    s.offset = s.node.length
+                }
+                o.parent.delete(o.parent.toArray().indexOf(o))
+            }
             deleteContentBackward(s)
             break
 
@@ -324,7 +313,14 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'insertParagraph':
-            if (s.root === s.node.parent) {
+            if (s.node instanceof Y.Map) {
+                let t = new Y.Text('')
+                let m = new Y.Map()
+                m.set(TEXT,t)
+                let o = s.node
+                s.node = t
+                o.parent.insert(o.parent.toArray().indexOf(o)+1,[m])
+            } else if (s.root === s.node.parent) {
                 insertParagraph(s)
             } else if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
                 if (s.node.parent.parent.parent.has('&')) {
