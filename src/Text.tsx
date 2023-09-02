@@ -87,10 +87,6 @@ export const TextView: Component<{ node: Y.Text, state: EditorState, tag: string
     let s
     let el = document.createElement(props.tag)
     let br = props.tag === 'span' ? false : true
-    el.contentEditable = 'true'
-    el.tabIndex = 0
-
-    el.onbeforeinput = (e) => console.log(e.data)
 
     let { docFromDom, domFromDoc } = props.state
 

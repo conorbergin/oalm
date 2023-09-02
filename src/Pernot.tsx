@@ -72,7 +72,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                 <div onKeyDown={handleKeyDown} class='grid w-full h-full fixed' style='grid-template-rows: min-content 1fr'>
                     <div class='flex-col gap-2 p-1'>
                         <div class='flex gap-2  border-b'>
-                            <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0,-1)])}>⮤</button>
+                            <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
                             <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                             <button onClick={() => props.setLogin(false)}>Sign out</button>
                         </div>

@@ -47,6 +47,9 @@ a {
     color: darkcyan
 }
 
+p:focus {
+    border: 1px solid red 
+}
 code { background-color: bisque; font-family: 'InputMono'}
 
 .dialog-bg {
@@ -61,4 +64,8 @@ code { background-color: bisque; font-family: 'InputMono'}
 
 .dialog-fg {
     display: absolute;
+}
+
+.editor > :first-child > :last-child {
+    margin-bottom: 5rem
 }

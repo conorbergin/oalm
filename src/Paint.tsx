@@ -9,6 +9,7 @@ import { yDeleteFromArray, yArraySignal } from "./utils";
 
 import { getStroke } from 'perfect-freehand'
 import { Dialog } from "./Dialog";
+import { TextView } from "./Text";
 const average = (a, b) => (a + b) / 2
 
 function getSvgPathFromStroke(points: Array<[number, number]>) {
@@ -193,30 +194,46 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
-    const commands = [{ name: 'delete', run : () => yDeleteFromArray(props.node) }]
+    const [selected, setSelected] = createSignal(false)
+    let p
+    document.onselectionchange = () => {
+        let s = document.getSelection()
+        setSelected(s?.anchorNode === p)
+    }
 
+    const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
+    let ytext = new Y.Text('')
     return (
         <>
             <ContentContainer node={props.node} state={props.state} commands={commands}>
-                <div class="relative flex" contentEditable={false}>
-                    <Show when={true}>
-                        <div class="absolute top-0 right-0 flex gap-1">
-                            <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
-                            <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
-                            <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
-                            <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
-                            <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
-                        </div>
+                <div class="flex flex-col border" classList={{'border-black':selected()}}>
 
-                        <div class="absolute bottom-0 right-0">
-                            <button onPointerDown={handleCanvasResize}>/</button>
-                        </div>
-                    </Show>
-                    <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
-                        <For each={data()}>
-                            {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
-                        </For>
-                    </svg>
+                    <div class='relative' contentEditable={false}>
+                        <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+                            <For each={data()}>
+                                {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+                            </For>
+                        </svg>
+                        <Show when={true}>
+                            <div class="absolute top-0 right-0 flex gap-1">
+                                <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+                                <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
+                                <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
+                                <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
+                                <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
+                            </div>
+
+                            <div class="absolute bottom-0 right-0">
+                                <button onPointerDown={handleCanvasResize}>/</button>
+                            </div>
+                        </Show>
+                    </div>
+                    <div class='flex ml-3 h-1' style='caret-color:red'>
+                        <p ref={p}><br/></p>
+                    </div>
+                    {/* <div class='flex ml-3 h-1' style='caret-color:transparent' >
+                        <TextView node={ytext} state={props.state} tag='p'/>
+                    </div> */}
                 </div>
             </ContentContainer>
         </>
