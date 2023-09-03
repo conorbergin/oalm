@@ -257,7 +257,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         console.log(selection)
 
         keydownHandler(e, selection)
-        selectionToDom(selection, state.domFromDoc)
+        // selectionToDom(selection, state.domFromDoc)
     }
 
 
@@ -266,7 +266,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
     return (
         <div >
 
-            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <div class='sticky top-0 left-0 bg-white border-b ' style='grid-column:1/4' contentEditable={false}>
                     <button onClick={() => props.setPath(p => p.length > 1 ? p.slice(0,-1) : p)}>🡅</button>
                     {msg()}
@@ -274,7 +274,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
             <Show when={palette()}>
-                <div class="fixed top-0 left-0 w-screen h-screen bg-gray-400/25" onClick={() => setPalette(false)} >
+                <div contentEditable={false} class="fixed top-0 left-0 w-screen h-screen bg-gray-400/25" onClick={() => setPalette(false)} >
                     <div class='absolute bg-white flex border rounded gap-1' style={`top:${paletteCoords().y}px;left:${paletteCoords().x}px`}>
                         <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
                         <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
