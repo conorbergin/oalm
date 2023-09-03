@@ -287,24 +287,10 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
     )
 }
 
-const HandleIcon: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
-    return (
-        <svg style='shape-rendering:crisp-edges' width={props.last ? '17px' : '16px'} viewBox={`0 0 ${props.last ? '17' : '16'} 16`}>
-            <Show when={props.last}>
-                <line x1={0.5} y1={0} x2={0.5} y2={8} stroke-width={1} stroke='black' />
-            </Show>
-            <line x1={0} y1={8.5} x2={3} y2={8.5} stroke-width={1} stroke='black' />
-            <Show when={props.section} fallback={<circle cx={8.5} cy={8.5} r={3} fill='none' stroke='black' />}>
-
-                <rect x={3.5} y={3.5} width={12} height={12} fill='none' stroke='black' stroke-width={1} shape-rendering='crispEdges' />
-            </Show>
-        </svg>
-    )
-}
 
 const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
     return (
-        <div style='display:grid; grid-template-columns: 3px 5px 5px 3px; grid-template-rows: 0.4rem 5px 5px 1fr;height:100%'>
+        <div style='display:grid; grid-template-columns: 3px 8px 8px 3px; grid-template-rows: 0.4rem 8px 8px 1fr;height:100%'>
             <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{ 'border-l': props.last }} class='border-b' />
 
             <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{ 'rounded-full': !props.section }} />
@@ -329,7 +315,6 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
     let [hidden, setHidden] = createSignal(false)
 
-    const [done, setDone] = createSignal(false)
     const children = yArraySignal(props.node.get(CHILDREN))
     const content = yArraySignal(props.node.get(CONTENT))
 
@@ -356,7 +341,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                     </div>
                 </div>
             </Show>
-            <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section':props.depth === 0 }} style={ props.depth === 0 ? 'grid-column:2/3' : ''}>
+            <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section':props.depth !== 0 }} style={ props.depth === 0 ? 'grid-column:2/3' : ''}>
                 <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{ 'border-l': props.last }} contentEditable={false}><MaybeDT node={props.node} /></div>
                 <div class='leading-none flex gap-1 font-bold text-2xl'>
 
@@ -371,7 +356,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
                 </div>
                 <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
-                    <div class="flex flex-col pl-2">
+                    <div class="flex flex-col" style='padding-left:11px'>
                         <Show when={content().length > 0}>
                             <div class="flex flex-col">
                                 <For each={content()}>
