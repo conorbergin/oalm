@@ -107,9 +107,9 @@ const taskEventString = (t:TaskEvent) => {
     case DATEDATE: {
       const b = Temporal.PlainDate.from(t.begin!)
       const e = Temporal.PlainDate.from(t.end!)
-      if (b.year !== e.year) return b.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + '-' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      if (b.year !== e.year) return b.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
       if (b.month !== e.month) return b.toLocaleString('en-GB',{day:'numeric',month:'short'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
-      if (b.day !== e.day) return b.toLocaleString('en-GB',{day:'numeric'}) + '-' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      if (b.day !== e.day) return b.toLocaleString('en-GB',{day:'numeric'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
       return 'Error: Dates out of order'
     }
     default: return 'Default'
