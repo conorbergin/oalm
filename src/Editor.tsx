@@ -249,7 +249,6 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         beforeinputHandler(e, selection)
         selectionToDom(selection, state.domFromDoc)
         state.domFromDoc.get(selection.node)?.scrollIntoView({ block: 'nearest', inline: 'start' })
-        state.domFromDoc.get(selection.node)?.scrollIntoViewIfNeeded()
     }
 
     const handleKeyDown = (e) => {
@@ -264,9 +263,12 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
 
 
     return (
-        <div class='overflow-y-scroll' style='overscroll-behaviour:contain'>
-            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div >
 
+            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+                <div class='fixed top-0 left-0 bg-white m-2 border w-full' contentEditable={false}>
+                    Toolbar
+                </div>
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
             <Show when={palette()}>
