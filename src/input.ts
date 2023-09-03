@@ -1,9 +1,8 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
 import { paste } from './paste'
+import { setMsg } from './Editor'
 
-import { createTable } from './table'
-import { t } from '@vite-pwa/assets-generator/dist/utils-a49afd3e'
 
 // paragraphs and sections
 export const TEXT = '!'
@@ -372,10 +371,11 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
                 insertParagraph(s)
             }
             break
-        // case 'insertReplacementText':
-        //     console.log('replaceText', e)
-        //     insertText(s, e.data!)
-        //     break
+        case 'insertReplacementText':
+            // console.log('replaceText', e)
+            setMsg(JSON.stringify(s.focus))
+            insertText(s, e.data!)
+            break
         case 'insertFromPaste':
             console.log('paste', e)
             paste(s, e)

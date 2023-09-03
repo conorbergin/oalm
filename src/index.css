@@ -66,6 +66,3 @@ code { background-color: bisque; font-family: 'InputMono'}
     display: absolute;
 }
 
-.editor > :first-child > :last-child {
-    margin-bottom: 5rem
-}
