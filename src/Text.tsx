@@ -76,7 +76,6 @@ export const highlight3 = (s: string) => {
     if (b < s.length) {
         r.push(s.slice(b))
     }
-    console.log(r)
     return r
 }
 

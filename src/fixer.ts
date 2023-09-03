@@ -1,44 +1,42 @@
 import * as Y from 'yjs'
 
 import { yReplace } from './utils'
-import { TEXT, CONTENT, CHILDREN, createParagraph } from './input'
+import {createParagraph } from './input'
 
-export const fixer = (root : Y.Map<any>, id: string) => {
+export const fixer = (root: Y.Map<any>) => {
 
-  if (!root.get('id')) {
-    console.log('fixer: no id')
-    root.set('id', id)
-  }
-
-  // if (root.has('~')) {
-  //   root.delete('~')
-  // }
-
-
-  if (!root.get(TEXT)) {
+  if (!root.get('01')) {
     console.log('fixer: no heading')
-    root.set(TEXT, new Y.Text("Heading"))
-  }
+    root.set('01', new Y.Text("Heading"))
+  } 
 
-
-  if (!root.get(CONTENT)) {
+  if (!root.get('02')) {
     console.log('fixer: no content')
-    root.set(CONTENT, Y.Array.from([createParagraph('')[0]]))
+    root.set('02', Y.Array.from([createParagraph('')[0]]))
   }
 
-  if (!root.get(CHILDREN)) {
+  if (!root.get('03')) {
     console.log('fixer: no children')
-    root.set(CHILDREN, new Y.Array())
+    root.set('03', new Y.Array())
   }
 
-  root.get(CONTENT).forEach((e,index) => {
+  if (root.has('~')) {
+    root.set('10',root.get('~'))
+    root.delete('~')
+  }
+  root.delete('!')
+  root.delete('&')
+  root.delete('$')
+  root.delete('00')
 
-    if (!(e instanceof Y.Map)) {
-      root.get(CONTENT).delete(index,1)
-    }
-  })
+  // root.get('$').forEach((e, index) => {
 
-  root.get(CHILDREN).forEach(element => {
+  //   if (!(e instanceof Y.Map)) {
+  //     root.get(CONTENT).delete(index, 1)
+  //   }
+  // })
+
+  root.get('03').forEach(element => {
     fixer(element)
   })
 }

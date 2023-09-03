@@ -50,9 +50,9 @@ export class EditorState {
 
 const newSection = () => {
     const m = new Y.Map()
-    m.set('!', new Y.Text('heading'))
-    m.set('$', new Y.Array())
-    m.set('&', new Y.Array())
+    m.set(TEXT, new Y.Text('heading'))
+    m.set(CONTENT, new Y.Array())
+    m.set(CHILDREN, new Y.Array())
     return m
 }
 
@@ -350,16 +350,15 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 <div contentEditable={props.depth !== 0} class='fixed top-0 left-0 w-screen h-screen bg-gray-400/25' onClick={() => setMenu(false)}>
                     <div class='absolute bg-white p-1 rounded border flex flex-col' style={`left:${coords().x}px;top:${coords().y}px`}>
                         <button onClick={() => yDeleteFromArray(props.node)} >delete</button>
-                        <button onClick={() => props.node.set('done', !props.node.get('done') ?? true)} >mark done</button>
                         <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
-                        <button onClick={() => props.node.get('&').unshift([newSection()])} >+ child</button>
+                        <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
                         <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
                     </div>
                 </div>
             </Show>
-            <div ref={s} class=' flex flex-col' classList={{ 'border-l': !props.last, 'section':props.depth === 0 }} style={ props.depth === 0 ? 'grid-column:2/3' : ''}>
+            <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section':props.depth === 0 }} style={ props.depth === 0 ? 'grid-column:2/3' : ''}>
                 <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{ 'border-l': props.last }} contentEditable={false}><MaybeDT node={props.node} /></div>
-                <div class='leading-none flex gap-1 font-bold text-lg'>
+                <div class='leading-none flex gap-1 font-bold text-2xl'>
 
                     <div contentEditable={false} class='flex'>
                         <button class="text-gray-500 font-bold flex" onpointerdown={handleDrag} onClick={() => setMenu(true)} >

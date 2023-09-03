@@ -5,9 +5,9 @@ import { setMsg } from './Editor'
 
 
 // paragraphs and sections
-export const TEXT = '!'
-export const CONTENT = '$'
-export const CHILDREN = '&'
+export const TEXT = '01'
+export const CONTENT = '02'
+export const CHILDREN = '03'
 
 // schedule
 export const BEGIN = 'b'
@@ -285,7 +285,6 @@ const deleteContentBackward = (s: Sel) => {
 /* INPUT HANDLERS */
 
 export const beforeinputHandler = (e: InputEvent, s: Sel) => {
-    console.log(e.target)
     e.preventDefault()
     switch (e.inputType) {
         case 'insertText':
@@ -322,7 +321,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             } else if (s.root === s.node.parent) {
                 insertParagraph(s)
             } else if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
-                if (s.node.parent.parent.parent.has('&')) {
+                if (s.node.parent.parent.parent.has(CHILDREN)) {
                     let m = new Y.Map()
                     let t = new Y.Text('')
                     m.set(TEXT, t)

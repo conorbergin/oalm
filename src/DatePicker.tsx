@@ -5,6 +5,7 @@ import * as Y from 'yjs'
 
 import { Temporal } from '@js-temporal/polyfill'
 import { ySignal } from './utils'
+import { CHILDREN, CONTENT } from './input'
 
 // const clockFaceRotated = [
 //   '09', '10', '11', '12', '13', '14', '15',
@@ -73,28 +74,47 @@ duration [] [yr] [month] [week] [day] [hr] []
 end [x]
 
 */
-
+type TaskEvent = {
+  type: string;
+  begin?: string;
+  end?: string;
+  duration?:string;
+}
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
-
+const TASKEVENT = '10'
 
 export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
-  const [hasDT, setHasDT] = createSignal(props.node.has('~'))
+  const [hasDT, setHasDT] = createSignal(props.node.has(TASKEVENT))
 
-  const f = () => setHasDT(props.node.has('~'))
+  const f = () => setHasDT(props.node.has(TASKEVENT))
   props.node.observe(f)
   onCleanup(() => props.node.unobserve(f))
   return (
     <Show when={hasDT()} fallback={
       <button class="text-gray-300" onClick={() => {
-        props.node.set('~', { begin: { kind: 'none' }, end: { kind: 'none' } })
-      }}>set</button>
+        props.node.set(TASKEVENT, { begin: { kind: 'none' }, end: { kind: 'none' } })
+      }}>set task/event</button>
     }>
       <DTNode node={props.node} />
     </Show>
   )
 }
 
+
+const taskEventString = (t:TaskEvent) => {
+  switch (t.type) {
+    case DATEDATE: {
+      const b = Temporal.PlainDate.from(t.begin!)
+      const e = Temporal.PlainDate.from(t.end!)
+      if (b.year !== e.year) return b.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + '-' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      if (b.month !== e.month) return b.toLocaleString('en-GB',{day:'numeric',month:'short'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      if (b.day !== e.day) return b.toLocaleString('en-GB',{day:'numeric'}) + '-' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      return 'Error: Dates out of order'
+    }
+    default: return 'Default'
+  }
+}
 
 const durationOptions = ['1w', '2w', '3w', '1m', '2m', '3m', '6m']
 const vagueOptions = ['next', 'soon', 'someday']
@@ -109,7 +129,7 @@ const TASK = 't'
 export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
 
 
-  const date = ySignal(props.node, '~')
+  const date = ySignal(props.node, TASKEVENT)
 
 
 
@@ -119,7 +139,7 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
       <button contentEditable={false} class="text-green-700 " classList={{
         'line-through text-gray-500': date().done,
       }} onClick={() => r.showModal()}>
-        {'Toime'}
+        {taskEventString(date())}
         <Show when={!date().done}>
           <span class="text-gray-500">
             <DepTracker node={props.node} />
@@ -128,7 +148,7 @@ export const DTNode: Component<{ node: Y.Map<any> }> = (props) => {
       </button>
       <dialog class='text-sm font-normal' ref={r} onClick={() => r.close()}>
         <div onClick={e => e.stopImmediatePropagation()}>
-          <DateSelector date={date()} node={props.node}/>
+          <DateSelector date={date()} node={props.node} />
         </div>
       </dialog>
     </>
@@ -157,33 +177,33 @@ const TaskSelector: Component<{ date: any }> = (props) => {
   )
 }
 
-export const DateSelector: Component<{date:any,node:Y.Map<any>}> = (props) => {
+export const DateSelector: Component<{ date: any, node: Y.Map<any> }> = (props) => {
 
   return (
     <div class='flex-col gap-1 p-2'>
       <div class='flex gap-2'>
-        <button onClick={() => props.node.set('~', { type: DATEDATE })}>date/date</button>
-        <button onClick={() => props.node.set('~', { type: TASK })}>task</button>
+        <button onClick={() => props.node.set(TASKEVENT, { type: DATEDATE })}>date/date</button>
+        <button onClick={() => props.node.set(TASKEVENT, { type: TASK })}>task</button>
       </div>
       <Switch>
         <Match when={props.date.type === TASK}>
           <div>
             Duration:
             <select>
-              
+
             </select>
           </div>
 
         </Match>
         <Match when={props.date.type === 'date'}>
           <div>
-            <div><input type='date' value={props.date.end} onChange={(e) => props.node.set('~', { type: props.date.type, begin: props.date.begin, end: e.target.value })} /> </div>
+            <div><input type='date' value={props.date.end} onChange={(e) => props.node.set(TASKEVENT, { type: props.date.type, begin: props.date.begin, end: e.target.value })} /> </div>
           </div>
         </Match>
         <Match when={props.date.type === DATEDATE}>
           <div>
-            <div>Begin: <input type='date' value={props.date.begin} onChange={(e) => props.node.set('~', { type: props.date.type, begin: e.target.value, end: props.date.end })} /></div>
-            <div>End: <input type='date' value={props.date.end} onChange={(e) => props.node.set('~', { type: props.date.type, begin: props.date.begin, end: e.target.value })} /></div>
+            <div>Begin: <input type='date' value={props.date.begin} onChange={(e) => props.node.set(TASKEVENT, { type: props.date.type, begin: e.target.value, end: props.date.end })} /></div>
+            <div>End: <input type='date' value={props.date.end} onChange={(e) => props.node.set(TASKEVENT, { type: props.date.type, begin: props.date.begin, end: e.target.value })} /></div>
           </div>
         </Match>
       </Switch>
@@ -193,18 +213,18 @@ export const DateSelector: Component<{date:any,node:Y.Map<any>}> = (props) => {
 
 export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
 
-  const [children, setChildren] = createSignal(props.node.get('&').toArray())
+  const [children, setChildren] = createSignal(props.node.get(CHILDREN).toArray())
 
   const [numerator, setNumerator] = createSignal(0)
   const [denominator, setDenominator] = createSignal(0)
 
   const f = () => {
-    setChildren(props.node.get('&').toArray())
+    setChildren(props.node.get(CHILDREN).toArray())
     let n = 0, d = 0
-    props.node.get('$').forEach((dep) => {
-      if (dep.has('~')) {
+    props.node.get(CONTENT).forEach((dep) => {
+      if (dep.has(TASKEVENT)) {
         d += 1
-        if (dep.get('~').status === 'done') {
+        if (dep.get(TASKEVENT).status === 'done') {
           n += 1
         }
       }
@@ -261,7 +281,7 @@ export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
                         'border': (i === now().day - 1) && (window().month === now().month) && (window().year === now().year),
                         'font-bold text-black': (i === dt().day - 1),
                       }} onClick={() => {
-                        props.node.set('~', Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
+                        props.node.set(TASKEVENT, Temporal.PlainDate.from({ day: i + 1, month: window().month, year: window().year }).toString())
                       }}>{`${i + 1}`.padStart(2, '0')}</button>}
                   </For>
                 </div>
