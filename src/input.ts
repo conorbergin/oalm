@@ -373,7 +373,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
         case 'insertReplacementText':
             // console.log('replaceText', e.dataTransfer)
-            setMsg(JSON.stringify({dt: e.dataTransfer,d:e.data}))
+            setMsg(JSON.stringify( e.dataTransfer))
             insertText(s, e.data!)
             break
         case 'insertFromPaste':
