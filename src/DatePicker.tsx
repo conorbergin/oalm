@@ -1,4 +1,4 @@
-import { Accessor, Component, createSignal, For, Setter, Show, Switch, Match, onCleanup, createEffect, on, JSXElement } from 'solid-js'
+import { Accessor, Component, createSignal, For, Setter, Show, Switch, Match, onCleanup, createEffect, on, JSXElement, ErrorBoundary } from 'solid-js'
 import { Portal } from 'solid-js/web'
 import * as Y from 'yjs'
 
@@ -78,7 +78,7 @@ type TaskEvent = {
   type: string;
   begin?: string;
   end?: string;
-  duration?:string;
+  duration?: string;
 }
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
@@ -96,20 +96,22 @@ export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
         props.node.set(TASKEVENT, { begin: { kind: 'none' }, end: { kind: 'none' } })
       }}>set task/event</button>
     }>
-      <DTNode node={props.node} />
+      <ErrorBoundary fallback={<span class='text-red-600'>Error</span>}>
+        <DTNode node={props.node} />
+      </ErrorBoundary>
     </Show>
   )
 }
 
 
-const taskEventString = (t:TaskEvent) => {
+const taskEventString = (t: TaskEvent) => {
   switch (t.type) {
     case DATEDATE: {
       const b = Temporal.PlainDate.from(t.begin!)
       const e = Temporal.PlainDate.from(t.end!)
-      if (b.year !== e.year) return b.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
-      if (b.month !== e.month) return b.toLocaleString('en-GB',{day:'numeric',month:'short'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
-      if (b.day !== e.day) return b.toLocaleString('en-GB',{day:'numeric'}) + ' - ' + e.toLocaleString('en-GB',{day:'numeric',month:'short',year:'2-digit'})
+      if (b.year !== e.year) return b.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+      if (b.month !== e.month) return b.toLocaleString('en-GB', { day: 'numeric', month: 'short' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+      if (b.day !== e.day) return b.toLocaleString('en-GB', { day: 'numeric' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
       return 'Error: Dates out of order'
     }
     default: return 'Default'
