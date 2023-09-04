@@ -75,48 +75,52 @@ end [x]
 
 */
 type TaskEvent = {
-  type: string;
-  begin?: string;
-  end?: string;
-  duration?: string;
+  begin?: {
+    date?: string,
+    datetime?: string,
+    duration?: string
+  },
+  end?: {
+    date?: string,
+    datetime?: string,
+    vague?: string
+  }
 }
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
 const TASKEVENT = '10'
 
-// export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
-//   const [hasDT, setHasDT] = createSignal(props.node.has(TASKEVENT))
 
-//   const f = () => setHasDT(props.node.has(TASKEVENT))
-//   props.node.observe(f)
-//   onCleanup(() => props.node.unobserve(f))
-//   return (
-//     <Show when={hasDT()} fallback={
-//       <button class="text-gray-300" onClick={() => }>set task/event</button>
-//     }>
-//       <ErrorBoundary fallback={<span class='text-red-600'>Error</span>}>
-//         <DTNode node={props.node} />
-//       </ErrorBoundary>
-//     </Show>
-//   )
-// }
 
 
 const taskEventString = (t: TaskEvent) => {
-  if (t.begin && t.end) {
-    const b = Temporal.PlainDate.from(t.begin!)
-    const e = Temporal.PlainDate.from(t.end!)
+  if (t.begin?.datetime && t.end?.datetime) {
+    const b = Temporal.PlainDateTime.from(t.begin.datetime)
+    const e = Temporal.PlainDateTime.from(t.end.datetime)
+    if (b.year !== e.year) return b.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' }) + ' - ' + e.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
+    if (b.month !== e.month) return b.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short' }) + ' - ' + e.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
+    if (b.day !== e.day) return b.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric' }) + ' - ' + e.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
+    return b.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric' }) + ' - ' + e.toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
+  }
+
+  if (t.begin?.date && t.end?.date) {
+    const b = Temporal.PlainDate.from(t.begin.date)
+    const e = Temporal.PlainDate.from(t.end.date)
     if (b.year !== e.year) return b.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
     if (b.month !== e.month) return b.toLocaleString('en-GB', { day: 'numeric', month: 'short' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
     if (b.day !== e.day) return b.toLocaleString('en-GB', { day: 'numeric' }) + ' - ' + e.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
     return 'Invalid date interval'
   }
-  if (t.end) return Temporal.PlainDate.from(t.end).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
-  if (t.duration) return Temporal.Duration.from(t.duration).toLocaleString('en-GB')
-  return 'err'
+  let b = '', e = ''
+  if (t.begin?.duration) b = Temporal.Duration.from(t.begin.duration).toString()
+  if (t.end?.datetime) e = Temporal.PlainDateTime.from(t.end.datetime).toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
+  if (t.end?.date) e = Temporal.PlainDate.from(t.end.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+  if (t.end?.vague) e = t.end.vague
+  if (b && e) return b + ' ' + e
+  return b || e || 'err'
 }
 
-const durationOptions = ['1w', '2w', '3w', '1m', '2m', '3m', '6m']
+const durationOptions = ['P1D','P2D','P4D','P7D','P10D','P15D','P20D','P1M', 'P2M', 'P3M', 'P4M','P6M','P9M']
 const vagueOptions = ['next', 'soon', 'someday']
 const kindOptions = ['none', 'vague', 'date', 'duration']
 
@@ -126,17 +130,12 @@ const TASK = 't'
 
 
 
-export const MaybeDT : Component<{ node: Y.Map<any> }> = (props) => {
+export const MaybeDT: Component<{ node: Y.Map<any> }> = (props) => {
 
 
   const date = ySignal(props.node, TASKEVENT)
+  // if (date()?.begin?.duration) props.node.delete(TASKEVENT)
   console.log(date())
-  createEffect(() => {
-    console.log(date())
-  })
-
-
-
   let r
   return (
     <>
@@ -152,7 +151,7 @@ export const MaybeDT : Component<{ node: Y.Map<any> }> = (props) => {
       </button>
       <dialog class='text-sm font-normal' ref={r} onClick={() => r.close()}>
         <div onClick={e => e.stopImmediatePropagation()}>
-          <DateSelector date={date()} node={props.node} />
+          <TaskEventPicker date={date()} node={props.node} />
         </div>
       </dialog>
     </>
@@ -174,7 +173,7 @@ export const DateSelector: Component<{ date: any, node: Y.Map<any> }> = (props) 
         <Match when={screen() === 0}>
           <div class='grid gap-1 items-center' style='grid-template-columns: 5rem 12rem 5rem'>
             <div class='text-end'>Begin: </div>
-            <input disabled={!props.date?.end} max={(props.date?.end) ? props.date.end : ''} type='date'  value={(props.date?.begin) ? props.date.begin : ''} onChange={(e) => props.node.set(TASKEVENT, { begin: e.target.value, end: props.date.end })} />
+            <input disabled={!props.date?.end} max={(props.date?.end) ? props.date.end : ''} type='date' value={(props.date?.begin) ? props.date.begin : ''} onChange={(e) => props.node.set(TASKEVENT, { begin: e.target.value, end: props.date.end })} />
             <button onClick={() => props.node.set(TASKEVENT, { end: props.date.end })}>clear</button>
             <div class='text-end'>End: </div>
             <input type='date' value={(props.date?.end) ? props.date.end : ''} min={(props.date?.begin) ? props.date.begin : ''} onChange={(e) => props.node.set(TASKEVENT, { ...(props.date && props.date.begin && { begin: props.date.begin }), end: e.target.value })} />
@@ -186,6 +185,83 @@ export const DateSelector: Component<{ date: any, node: Y.Map<any> }> = (props) 
           </div>
         </Match>
       </Switch>
+    </div>
+  )
+}
+
+
+const cleverDateSetter = (node: Y.Map<any>, taskEvent: TaskEvent | null, date: string) => {
+
+  if (taskEvent?.begin?.date && taskEvent?.end?.date) {
+
+  } else if (taskEvent?.end?.date) {
+    if (date > taskEvent.end.date) {
+      node.set(TASKEVENT, { begin: taskEvent.end, end: { date: date } })
+    } else if (date === taskEvent.end.date) {
+      node.delete(TASKEVENT)
+    } else {
+      node.set(TASKEVENT, { begin: { date: date }, end: taskEvent.end })
+    }
+  } else {
+    node.set(TASKEVENT, { end: { date: date } })
+  }
+}
+
+const cleverDurationSetter = (node: Y.Map<any>, taskEvent: TaskEvent | null, duration: string) => {
+  if (taskEvent?.begin?.duration === duration) {
+    taskEvent.end ? node.set(TASKEVENT, { end: taskEvent.end }) : node.delete(TASKEVENT)
+  } else {
+    node.set(TASKEVENT, { begin: { duration: duration }, ...(taskEvent?.end && { end: taskEvent.end }) })
+  }
+}
+
+const cleverVagueSetter = (node: Y.Map<any>, taskEvent: TaskEvent | null, vague: string) => {
+  if (taskEvent?.end?.vague === vague) {
+    taskEvent.begin ? node.set(TASKEVENT, { begin: taskEvent.begin }) : node.delete(TASKEVENT)
+  } else {
+    node.set(TASKEVENT, { end: { vague: vague }, ...(taskEvent?.begin && { begin: taskEvent.begin }) })
+  }
+}
+
+const getLastDaysOfLastMonth = (date:Temporal.PlainDate) => {
+  const lastDayOfLastMonth = date.with({day:1}).subtract({days:1})
+  const lastMondayOfLastMonth = lastDayOfLastMonth.subtract({days:lastDayOfLastMonth.dayOfWeek})
+  return Array.from({length: date.subtract({months:1}).daysInMonth - lastMondayOfLastMonth.day }, (_,index) => lastMondayOfLastMonth.day + index +1)
+}
+
+const getDaysOfCurrentMonth = (date:Temporal.PlainDate) => Array.from({length:date.daysInMonth}, (_,index) => index+1)
+
+const getFirstDaysOfNextMonth = (date:Temporal.PlainDate) => {
+  const firstDayOfNextMonth = date.add({months:1}).with({day:1})
+  const firstSundayOfNextMonth = firstDayOfNextMonth.add({days:7-firstDayOfNextMonth.dayOfWeek})
+  return Array.from({length:firstSundayOfNextMonth.day},(_,index) => index+1)
+}
+
+export const TaskEventPicker: Component<{ date: TaskEvent, node: Y.Map<any> }> = (props) => {
+  const now = Temporal.Now.plainDateISO()
+  const [monthWindow, setMonthWindow] = createSignal(now)
+  return (
+    <div class='flex flex-col gap-1 text-gray-500 font-bold'>
+      <div class='flex gap-1'>
+        <For each={durationOptions}>
+          {item => <button onClick={() => cleverDurationSetter(props.node, props.date, item)} classList={{ 'text-black': props.date?.begin?.duration === item }} >{item}</button>}
+        </For>
+      </div>
+      <div class='flex'>
+        <button onClick={() => setMonthWindow(d => d.add({ months: 1 }))}>&lt;</button>
+        <div>{monthWindow().toLocaleString('en-GB', { month: 'long' })}</div>
+        <button onClick={() => setMonthWindow(d => d.subtract({ months: 1 }))}>&gt;</button>
+      </div>
+      <div class='grid gap-1 grid-cols-7'>
+        <For each={getLastDaysOfLastMonth(monthWindow())}  >{item => <button class='text-gray-300' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().subtract({months:1}).with({day:item}).toString())}>{item}</button>}</For>
+        <For each={getDaysOfCurrentMonth(monthWindow())}   >{item => <button  class='text-gray-500' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().with({day:item}).toString())}>{item}</button>}</For>
+        <For each={getFirstDaysOfNextMonth(monthWindow())} >{item => <button  class='text-gray-300' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().add({months:1}).with({day:item}).toString())}>{item}</button>}</For>
+      </div>
+      <div class='flex gap-1'>
+        <For each={vagueOptions}>
+          {item => <button onClick={() => cleverVagueSetter(props.node, props.date, item)} classList={{ 'text-black': props.date?.end?.vague === item }} >{item}</button>}
+        </For>
+      </div>
     </div>
   )
 }
@@ -249,7 +325,7 @@ export const DepTracker: Component<{ node: Y.Map<any> }> = (props) => {
                     }}>{months[i]}</button>}
                   </For>
                 </div>
-
+ 
                 <div class="grid grid-cols-7 gap-1">
                   <For each={[...Array(window().with({ day: 1 }).dayOfWeek - 1).keys()]}>
                     {(i) => <div />}

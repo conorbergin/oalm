@@ -1,4 +1,4 @@
-import { Component, Setter, JSX,Accessor } from "solid-js"
+import { Component, Setter, JSX,Accessor, createEffect } from "solid-js"
 
 import { Portal } from "solid-js/web"
 
@@ -8,14 +8,18 @@ interface Dialog {
   setShow: Setter<boolean>
 }
 
-export const Dialog: Component<{ children: Element, show: Accessor<boolean>,setShow: Setter<boolean> }> = (props) => {
-  let r
+export const Dialog: Component<{ children: Element, show: boolean,setShow: Setter<boolean> }> = (props) => {
+  let r : HTMLDialogElement
   createEffect(() => {
-    
+    if (props.show) {
+      r.showModal()
+    } else {
+      r.close()
+    }
   })
   return (
     <dialog ref={r}>
-
+      {props.children}
     </dialog>
   )
 }
