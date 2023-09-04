@@ -19,8 +19,8 @@
 how do we handle todo lists? all items marked done when done - if any items are marked done then a counter is displayed at the root node
 
 - shopping list [5/7] - can also be tracked in the agenda
-- [] bread
-- [] eggs
+- [ ] bread
+- [ ] eggs
 - [x] things 
 - [x] things 
 - [x] things 
