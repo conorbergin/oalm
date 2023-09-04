@@ -112,7 +112,7 @@ const taskEventString = (t: TaskEvent) => {
     return 'Invalid date interval'
   }
   let b = '', e = ''
-  if (t.begin?.duration) b = Temporal.Duration.from(t.begin.duration).toString()
+  if (t.begin?.duration) b = Temporal.Duration.from(t.begin.duration).toString().slice(1)
   if (t.end?.datetime) e = Temporal.PlainDateTime.from(t.end.datetime).toLocaleString('en-GB', { minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'short', year: '2-digit' })
   if (t.end?.date) e = Temporal.PlainDate.from(t.end.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
   if (t.end?.vague) e = t.end.vague
@@ -193,7 +193,18 @@ export const DateSelector: Component<{ date: any, node: Y.Map<any> }> = (props) 
 const cleverDateSetter = (node: Y.Map<any>, taskEvent: TaskEvent | null, date: string) => {
 
   if (taskEvent?.begin?.date && taskEvent?.end?.date) {
-
+    const midpoint = Temporal.PlainDate.from(taskEvent.begin.date).add({days: Math.round(Temporal.PlainDate.from(taskEvent.end.date).since(Temporal.PlainDate.from(taskEvent.begin.date)).days / 2)}).toString()
+    if ( date === taskEvent.begin.date) {
+      node.set(TASKEVENT,{end:taskEvent.end})
+    } else if (date === taskEvent.end.date) {
+      node.set(TASKEVENT,{begin:taskEvent.begin})
+    } else if (date > taskEvent.end.date) {
+      node.set(TASKEVENT, {begin:taskEvent.begin, end : { date: date}})
+    } else if ( date > midpoint) {
+      node.set(TASKEVENT, {begin:{date:date}, end:taskEvent.end})
+    } else {
+      node.set(TASKEVENT,{begin:{date:date},end:taskEvent.end})
+    }
   } else if (taskEvent?.end?.date) {
     if (date > taskEvent.end.date) {
       node.set(TASKEVENT, { begin: taskEvent.end, end: { date: date } })
@@ -240,22 +251,31 @@ const getFirstDaysOfNextMonth = (date:Temporal.PlainDate) => {
 export const TaskEventPicker: Component<{ date: TaskEvent, node: Y.Map<any> }> = (props) => {
   const now = Temporal.Now.plainDateISO()
   const [monthWindow, setMonthWindow] = createSignal(now)
+
+  const [beginDate,setBeginDate] = createSignal<null | Temporal.PlainDate>(null)
+  const [endDate,setEndDate] = createSignal<null | Temporal.PlainDate>(null)
+
+  createEffect(() => {
+    setBeginDate(props.date?.begin?.date ? Temporal.PlainDate.from(props.date.begin.date) : null)
+    setEndDate(props.date?.end?.date ? Temporal.PlainDate.from(props.date.end.date) : null)
+  })
+  
   return (
     <div class='flex flex-col gap-1 text-gray-500 font-bold'>
       <div class='flex gap-1'>
         <For each={durationOptions}>
-          {item => <button onClick={() => cleverDurationSetter(props.node, props.date, item)} classList={{ 'text-black': props.date?.begin?.duration === item }} >{item}</button>}
+          {item => <button onClick={() => cleverDurationSetter(props.node, props.date, item)} classList={{ 'text-black': props.date?.begin?.duration === item }} >{item.slice(1)}</button>}
         </For>
       </div>
-      <div class='flex'>
-        <button onClick={() => setMonthWindow(d => d.add({ months: 1 }))}>&lt;</button>
-        <div>{monthWindow().toLocaleString('en-GB', { month: 'long' })}</div>
-        <button onClick={() => setMonthWindow(d => d.subtract({ months: 1 }))}>&gt;</button>
+      <div class='flex gap-1 justify-between'>
+        <button onClick={() => setMonthWindow(d => d.subtract({ months: 1 }))}>&lt;</button>
+        <div>{monthWindow().toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</div>
+        <button onClick={() => setMonthWindow(d => d.add({ months: 1 }))}>&gt;</button>
       </div>
       <div class='grid gap-1 grid-cols-7'>
-        <For each={getLastDaysOfLastMonth(monthWindow())}  >{item => <button class='text-gray-300' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().subtract({months:1}).with({day:item}).toString())}>{item}</button>}</For>
-        <For each={getDaysOfCurrentMonth(monthWindow())}   >{item => <button  class='text-gray-500' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().with({day:item}).toString())}>{item}</button>}</For>
-        <For each={getFirstDaysOfNextMonth(monthWindow())} >{item => <button  class='text-gray-300' onClick={() => cleverDateSetter(props.node, props.date, monthWindow().add({months:1}).with({day:item}).toString())}>{item}</button>}</For>
+        <For each={getLastDaysOfLastMonth(monthWindow())}  >{item => <button  classList={{'text-black': beginDate()?.equals(monthWindow().subtract({months:1}).with({day:item})) || endDate()?.equals(monthWindow().subtract({months:1}).with({day:item})) }} onClick={() => cleverDateSetter(props.node, props.date, monthWindow().subtract({months:1}).with({day:item}).toString())}>{item}</button>}</For>
+        <For each={getDaysOfCurrentMonth(monthWindow())}   >{item => <button  classList={{'text-black': beginDate()?.equals(monthWindow().with({day:item})) || endDate()?.equals(monthWindow().with({day:item})) }} onClick={() => cleverDateSetter(props.node, props.date, monthWindow().with({day:item}).toString())}>{item}</button>}</For>
+        <For each={getFirstDaysOfNextMonth(monthWindow())} >{item => <button  classList={{'text-black': beginDate()?.equals(monthWindow().add({months:1}).with({day:item})) || endDate()?.equals(monthWindow().add({months:1}).with({day:item})) }} onClick={() => cleverDateSetter(props.node, props.date, monthWindow().add({months:1}).with({day:item}).toString())}>{item}</button>}</For>
       </div>
       <div class='flex gap-1'>
         <For each={vagueOptions}>
