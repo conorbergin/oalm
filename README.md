@@ -1,16 +1,11 @@
 # Structure
 
-```
-!       inscription     the main text of section or para node
-$       content         the child nodes of a section or para
-&       children        the subsections of a node
-
-d       duration        the predicted duration
-e       end             the end of an item
-
-h       header          table header
-i       items           table items
-```
+| Code | Description |
+|:----:|:-------|
+|01| Text |
+|02| Content Array |
+|03| Children Array |
+|10| Task or Event |
 
 # Task managment
 
@@ -24,13 +19,13 @@ i       items           table items
 how do we handle todo lists? all items marked done when done - if any items are marked done then a counter is displayed at the root node
 
 - shopping list [5/7] - can also be tracked in the agenda
-   [] bread
-   [] eggs
-   [x] things 
-   [x] things 
-   [x] things 
-   [x] things 
-   [x] things 
+- [] bread
+- [] eggs
+- [x] things 
+- [x] things 
+- [x] things 
+- [x] things 
+- [x] things 
 
 
 maybe subevents have to be children on the event which they are on, so if you work 8hrs a day, only events in the work folder can be done during this time. A Tag system might be better bc you could do your taxes on holiday for instance
