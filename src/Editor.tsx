@@ -315,7 +315,10 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     const content = yArraySignal(props.node.get(CONTENT))
 
     const handleDrag = (e) => {
-        drag(e, props.node, props.state, 'section', () => setMenu(true))
+        if (props.depth > 0) {
+
+            drag(e, props.node, props.state, 'section', () => setMenu(true))
+        }
     }
 
     createEffect(() => {
