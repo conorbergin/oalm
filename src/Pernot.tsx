@@ -21,7 +21,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     const [synced, setSynced] = createSignal(false)
     const [calendar, setCalendar] = createSignal(false)
     const [path, setPath] = createSignal([])
-    const viewStates = ['Outline', 'Timeline']
+    const viewStates = ['Outline', 'Calendar']
     const [view, setView] = createSignal(0)
 
     let ydoc = new Y.Doc()
@@ -76,24 +76,25 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
                     </div> */}
-                    <div class='border-b text-gray-700'>
+                <div class='border-b text-gray-700'>
+                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
-                            <For each={path()}>
-                                {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
-                            </For>
-                        </div>
                     <For each={path()}>
-                        {(item, index) => <Show when={index() === path().length - 1}>
-                            <Switch>
-                                <Match when={view() === 0}>
-                                    <EditorView node={item} setPath={setPath} path={path()} />
-                                </Match>
-                                <Match when={view() === 1}>
-                                    <CalendarView root={item} />
-                                </Match>
-                            </Switch>
-                        </Show>}
+                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
                     </For>
+                </div>
+                <For each={path()}>
+                    {(item, index) => <Show when={index() === path().length - 1}>
+                        <Switch>
+                            <Match when={view() === 0}>
+                                <EditorView node={item} setPath={setPath} path={path()} />
+                            </Match>
+                            <Match when={view() === 1}>
+                                <CalendarView root={item} />
+                            </Match>
+                        </Switch>
+                    </Show>}
+                </For>
                 {/* </div> */}
             </Show >
         </div>

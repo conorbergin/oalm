@@ -74,7 +74,7 @@ duration [] [yr] [month] [week] [day] [hr] []
 end [x]
 
 */
-type TaskEvent = {
+export type TaskEvent = {
   begin?: {
     date?: string,
     datetime?: string,

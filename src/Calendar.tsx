@@ -1,4 +1,4 @@
-import { Component, For, createSignal, onCleanup, Show } from "solid-js"
+import { Component, For, createSignal, onCleanup, Show, Switch, Match, createEffect } from "solid-js"
 
 import * as Y from 'yjs'
 
@@ -6,7 +6,10 @@ import { Temporal } from '@js-temporal/polyfill';
 import { Dialog } from "./Dialog";
 import { Codemirror } from "./Codemirror";
 import { ySignal } from "./utils";
-import { DateSelector } from "./DatePicker";
+import { DateSelector, TaskEventPicker, TaskEvent } from "./DatePicker";
+import { CHILDREN, TEXT } from "./input";
+
+const TASKEVENT = '10'
 
 const pack = (a: Array<{ start: Temporal.PlainDate, end: Temporal.PlainDate, col: number }>) => {
     let b: number[] = []
@@ -36,7 +39,7 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
     const [dates, setDates] = createSignal([])
     const [events, setEvents] = createSignal([])
 
-    const f = (node: Y.Map<any>) => [...(node.has('~') && node.get('~').type === 'dd' ? [node] : []), ...(node.has('&') ? node.get('&').toArray().flatMap((n) => f(n)) : [])]
+    const f = (node: Y.Map<any>) => [...(node.has(TASKEVENT) && node.get(TASKEVENT).end?.date ? [node] : []), ...(node.has(CHILDREN) ? node.get(CHILDREN).toArray().flatMap((n) => f(n)) : [])]
 
     const g = () => {
         let d = f(props.root)
@@ -50,44 +53,69 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
 
 
     return (
-        <div class='overflow-y-scroll grid' style='grid-template-rows:repeat(365,min-content); grid-template-columns: 1fr min(100%,80ch) 1fr'>
+        <div class='grid grid-cols-7'>
             <For each={[...Array(365).keys()]}>
                 {(item, index) =>
-                    <div class="p-1 border-b " style={`grid-column: 1 /4;grid-row:${index()}`}>
+                    <div class="p-1 border-b border-r" classList={{ 'border-l': item % 7 === 0 }}>
                         <div class='z-10' >{item}</div>
                     </div>
                 }
             </For>
-            <div class='grid gap-x-2 p-2' style='justify-items:center;grid-column:2/3;grid-row:1/365;grid-template-rows:subgrid; grid-template-columns: auto'>
-                <For each={dates()}>
-                    {(item) =><CalendarItem node={item}/>}
-                </For>
-
-                {/* <div style='grid-row: 1 / 2' class='border border-red-700' />
-                <div style='grid-row: 36 / 42' class='border border-red-700' />
-                <div style=' grid-row: 37 / 52' class='border border-red-700' />
-                <div style=' grid-row: 47 / 52' class='border border-red-700' />
-                <div style=' grid-row: 51 / 62' class='border border-red-700' />
-                <div style=' grid-row: 43 / 52' class='border border-red-700' /> */}
-            </div>
+            <For each={dates()}>
+                {item => <CalendarItem node={item} />}
+            </For>
         </div>
     )
 }
 
-const CalendarItem:Component<{node:Y.Map<any>}> = (props) => {
+const CalendarItem: Component<{ node: Y.Map<any> }> = (props) => {
     let r = {} as HTMLDialogElement
-    const [show, setShow] = createSignal(false)
-    const d = props.node.get('~')
-    const date = ySignal(props.node, '~')
+    const date = ySignal(props.node, TASKEVENT)
+
     return (
         <>
-        <button onClick={() => r.showModal()} class='border border-red-700 bg-red-700/25' style={`width: min(20ch,100%); grid-row: ${Temporal.PlainDate.from(date().begin).dayOfYear} / ${Temporal.PlainDate.from(date().end).dayOfYear}`}/>
-        <dialog ref={r} onClick={() => r.close()}>
-            <div onClick={e => e.stopImmediatePropagation()}>
-                <Codemirror ytext={props.node.get('!')}/>
-                <DateSelector node={props.node} date={date()}/>
-            </div>
-        </dialog>
+            <Switch>
+                <Match when={date().begin?.date && date().end?.date}>
+                    <Event node={props.node} date={date()} />
+                </Match>
+            </Switch>
         </>
     )
+}
+
+const getCalendarCoords = (date: TaskEvent) => {
+    const b = Temporal.PlainDate.from(date.begin!.date!)
+    const e = Temporal.PlainDate.from(date.end!.date!)
+    const startX = b.dayOfYear % 7
+    const startY = Math.floor(b.dayOfYear / 7)
+    const endX = e.dayOfYear % 7
+    const endY = Math.floor(e.dayOfYear / 7)
+    if (startY === endY) {
+        return [[startX+1, startY, endX, startY + 1]]
+    } else if (endY === startY+1) {
+        return [[startX + 1, startY, 8, startY + 1],[1,endY,endX,endY+1]]
+    } else {
+        return [[startX +1, startY, 8, startY + 1],...Array.from({length:endY-startY-1},(_,index)=> [1,index+startY+1,7,index+startY+2]),[1,endY,endX,endY+1]]
+    }
+
+}
+
+const Event: Component<{ node: Y.Map<any>, date: TaskEvent }> = (props) => {
+    let r
+    return (
+        <>
+            <For each={getCalendarCoords(props.date)}>
+                {item => <>
+                    <button onClick={() => r.showModal()} class='border border-red-700 bg-red-700/25' style={`grid-column: ${item[0]} / ${item[2]};grid-row: ${item[1]} / ${item[3]}`} />
+                    <dialog ref={r} onClick={() => r.close()}>
+                        <div onClick={e => e.stopImmediatePropagation()}>
+                            <div>{props.node.get(TEXT).toString()}</div>
+                            <TaskEventPicker node={props.node} date={props.date} />
+                        </div>
+                    </dialog>
+                </>}
+            </For >
+        </>
+    )
+
 }
