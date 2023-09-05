@@ -185,7 +185,7 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
 export const [msg, setMsg] = createSignal('')
 
 
-export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.Map<any>>> }> = (props) => {
+export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>> }> = (props) => {
 
     let state = new EditorState(props.node)
 
@@ -267,10 +267,6 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
         <div >
 
             <div class="font-body editor touch-pan-y" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
-                <div class='sticky top-0 left-0 bg-white border-b ' style='grid-column:1/4' contentEditable={false}>
-                    <button onClick={() => props.setPath(p => p.length > 1 ? p.slice(0,-1) : p)}>🡅</button>
-                    {msg()}
-                </div>
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
             <Show when={palette()}>
@@ -319,7 +315,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     const content = yArraySignal(props.node.get(CONTENT))
 
     const handleDrag = (e) => {
-        drag(e, props.node, props.state, 'section',() => setMenu(true))
+        drag(e, props.node, props.state, 'section', () => setMenu(true))
     }
 
     createEffect(() => {
@@ -341,12 +337,12 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                     </div>
                 </div>
             </Show>
-            <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section':props.depth !== 0 }} style={ props.depth === 0 ? 'grid-column:2/3' : ''}>
+            <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section': props.depth !== 0 }} style={props.depth === 0 ? 'grid-column:2/3' : ''}>
                 <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{ 'border-l': props.last }} contentEditable={false}><MaybeDT node={props.node} /></div>
                 <div class='leading-none flex gap-1 font-bold text-2xl'>
 
                     <div contentEditable={false} class='flex'>
-                        <button class="text-gray-500 font-bold flex" onpointerdown={handleDrag} >
+                        <button class="text-gray-500 font-bold flex touch-none" onpointerdown={handleDrag} >
                             <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} />
                         </button>
                     </div>
@@ -407,7 +403,7 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
     let r
     const [menu, setMenu] = createSignal(false)
 
-    const handleDrag = (e: PointerEvent) => drag(e, props.node, props.state, 'content',() => setMenu(true))
+    const handleDrag = (e: PointerEvent) => drag(e, props.node, props.state, 'content', () => setMenu(true))
 
 
     onMount(() => {
