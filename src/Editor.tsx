@@ -65,7 +65,7 @@ const newEmbed = () => {
     return m
 }
 
-export const drag = (event: PointerEvent, node: any, editor: EditorState, klass: string) => {
+export const drag = (event: PointerEvent, node: any, editor: EditorState, klass: string, func: () => {}) => {
     const zoneHeight = 20
     if (!(event.target instanceof Element)) return
     event.target.releasePointerCapture(event.pointerId)
@@ -152,7 +152,7 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
         document.removeEventListener('pointerup', handlePointerUp)
 
         if (!moved) {
-            return
+            func()
         }
 
         if (newParent !== node.parent) {
@@ -319,7 +319,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     const content = yArraySignal(props.node.get(CONTENT))
 
     const handleDrag = (e) => {
-        drag(e, props.node, props.state, 'section')
+        drag(e, props.node, props.state, 'section',() => setMenu(true))
     }
 
     createEffect(() => {
@@ -346,7 +346,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 <div class='leading-none flex gap-1 font-bold text-2xl'>
 
                     <div contentEditable={false} class='flex'>
-                        <button class="text-gray-500 font-bold flex" onpointerdown={handleDrag} onClick={() => setMenu(true)} >
+                        <button class="text-gray-500 font-bold flex" onpointerdown={handleDrag} >
                             <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} />
                         </button>
                     </div>
@@ -407,7 +407,7 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
     let r
     const [menu, setMenu] = createSignal(false)
 
-    const handleDrag = (e: PointerEvent) => drag(e, props.node, props.state, 'content')
+    const handleDrag = (e: PointerEvent) => drag(e, props.node, props.state, 'content',() => setMenu(true))
 
 
     onMount(() => {
@@ -440,7 +440,7 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
             </Show>
             <div ref={r} class="flex gap-1 content">
                 <div contentEditable={false}>
-                    <button class="font-bold text-gray-400 touch-none border-l h-full flex" onpointerdown={handleDrag} onClick={() => setMenu(true)}>
+                    <button class="font-bold text-gray-400 touch-none border-l h-full flex" onpointerdown={handleDrag}>
                         <HandleIcon2 last={false} section={false} sprogs={false} />
                     </button>
                 </div>

@@ -194,11 +194,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         }
     }
 
-    onMount(() => {
-        props.state.docFromDom.set(p,props.node)
-        props.state.domFromDoc.set(props.node,p)
-    })
-
     const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
     let ytext = new Y.Text('')
     return (
