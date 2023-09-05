@@ -266,7 +266,7 @@ export const EditorView: Component<{ node: Y.Map<any>, setPath: Setter<Array<Y.M
     return (
         <div >
 
-            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+            <div class="font-body editor touch-pan-y" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <div class='sticky top-0 left-0 bg-white border-b ' style='grid-column:1/4' contentEditable={false}>
                     <button onClick={() => props.setPath(p => p.length > 1 ? p.slice(0,-1) : p)}>🡅</button>
                     {msg()}
