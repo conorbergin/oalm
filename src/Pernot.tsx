@@ -68,7 +68,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     }
 
     return (
-        <>
+        <div class='touch-pan-y'>
             <Show when={synced()}>
                 {/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
                     <div class='flex gap-2  border-b z-10 bg-white'>
@@ -96,7 +96,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                     </For>
                 {/* </div> */}
             </Show >
-        </>
+        </div>
     )
 }
 
