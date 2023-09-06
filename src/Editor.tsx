@@ -266,7 +266,7 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
     return (
         <div >
 
-            <div class="font-body editor touch-pan-y" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
             <Show when={palette()}>
@@ -316,8 +316,9 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
     const handleDrag = (e) => {
         if (props.depth > 0) {
-
             drag(e, props.node, props.state, 'section', () => setMenu(true))
+        } else {
+            setMenu(true)
         }
     }
 

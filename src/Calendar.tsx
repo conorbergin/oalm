@@ -95,8 +95,8 @@ const getCalendarCoords = (date: TaskEvent, startDate:Temporal.PlainDate, endDat
     const e = Math.min(Temporal.PlainDate.from(date.end!.date!).since(startDate).days,endDate.since(startDate).days)
     const startX = b % 7 + 1
     const startY = Math.floor(b / 7) + 1
-    const endX = e % 7 + 1
-    const endY = Math.floor(e / 7) + 1
+    const endX = e % 7 + 2
+    const endY = Math.floor(e / 7) + 2
     const length = endY - startY
     return Array.from({length},(_,index) => {
         if (index === 0) {
