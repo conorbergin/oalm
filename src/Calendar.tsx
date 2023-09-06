@@ -51,13 +51,14 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
     // props.root.observeDeep(g)
     // onCleanup(() => props.root.unobserveDeep(g))
 
+    const now = Temporal.Now.plainDateISO()
 
     return (
         <div class='grid grid-cols-7'>
-            <For each={[...Array(365).keys()]}>
+            <For each={[...Array.from({length:now.daysInYear},(_,index) => Temporal.PlainDate())]}>
                 {(item, index) =>
-                    <div class="p-1 border-b border-r" classList={{ 'border-l': item % 7 === 0 }}>
-                        <div class='z-10' >{item}</div>
+                    <div class="p-1 border-b border-r" style={`grid-column: ${item/7} / ${}; grid-row: ${} / ${}`} classList={{ 'border-l': item % 7 === 0 }}>
+                        <div >{item}</div>
                     </div>
                 }
             </For>
@@ -106,7 +107,7 @@ const Event: Component<{ node: Y.Map<any>, date: TaskEvent }> = (props) => {
         <>
             <For each={getCalendarCoords(props.date)}>
                 {item => <>
-                    <button onClick={() => r.showModal()} class='border border-red-700 bg-red-700/25' style={`grid-column: ${item[0]} / ${item[2]};grid-row: ${item[1]} / ${item[3]}`} />
+                    <button onClick={() => r.showModal()} class='border z-10 border-red-700 bg-red-700/25' style={`grid-column: ${item[0]} / ${item[2]};grid-row: ${item[1]} / ${item[3]}`} />
                     <dialog ref={r} onClick={() => r.close()}>
                         <div onClick={e => e.stopImmediatePropagation()}>
                             <div>{props.node.get(TEXT).toString()}</div>
