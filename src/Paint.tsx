@@ -124,42 +124,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
         document.addEventListener('pointerup', handlePointerUp)
     }
 
-    // onMount(() => {
-    //     props.node.forEach((elem) => {
-    //         let el = svgLine(elem)
-    //         s.insertAdjacentElement('beforeend', el)
-    //         dom2doc.set(el, elem)
-    //     })
-    //     props.node.observe((e) => {
-    //         let arr = Array.from(s.children)
-    //         let counter = 0
-    //         e.changes.delta.forEach((change) => {
-    //             if (change.retain) {
-    //                 counter += change.retain
-    //             } else if (change.delete) {
-    //                 for (let i = 0; i < change.delete; i++) {
-    //                     let el = arr[counter + i]
-    //                     dom2doc.delete(el)
-    //                     el.remove()
-    //                 }
-    //             } else if (change.insert) {
-    //                 for (let i = 0; i < change.insert.length; i++) {
-    //                     if (counter === 0) {
-    //                         let el = svgLine(e.target.get(0))
-    //                         s.insertAdjacentElement('afterbegin', el)
-    //                         dom2doc.set(el, e.target.get(0))
-    //                     } else {
-    //                         let el = svgLine(e.target.get(counter))
-    //                         arr[counter - 1].insertAdjacentElement('afterend', el)
-    //                         dom2doc.set(el, e.target.get(counter))
-    //                     }
-    //                     counter += 1
-    //                 }
-    //             }
-    //         })
-    //     })
-    // })
-
     const handleCanvasResize = (e: PointerEvent) => {
         let initialY = e.clientY
         let initialHeight = s.getBoundingClientRect().height
@@ -201,13 +165,13 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
             <ContentContainer node={props.node} state={props.state} commands={commands}>
                 <div class="flex flex-col">
 
-                    <div class='relative' contentEditable={false}>
-                        <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+                    <div class='relative w-full' contentEditable={false}>
+                        <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border w-full bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
                             <For each={data()}>
                                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
                             </For>
                         </svg>
-                        <Show when={true}>
+                        <Show when={false}>
                             <div class="absolute top-0 right-0 flex gap-1">
                                 <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
                                 <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
@@ -216,9 +180,9 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                                 <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
                             </div>
 
-                            <div class="absolute bottom-0 right-0">
+                            {/* <div class="absolute bottom-0 right-0">
                                 <button onPointerDown={handleCanvasResize}>/</button>
-                            </div>
+                            </div> */}
                         </Show>
                     </div>
                 </div>
