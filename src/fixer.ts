@@ -35,6 +35,11 @@ export const fixer = (root: Y.Map<any>) => {
   //     root.get(CONTENT).delete(index, 1)
   //   }
   // })
+  root.get('02')?.forEach((e,index) => {
+    if (e.has('!')) {
+      e.parent.delete(index-1)
+    }
+  })
 
   root.get('03').forEach(element => {
     fixer(element)

@@ -34,12 +34,19 @@ const extractDate = (node: Y.Map<any>) => {
 
 
 export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
+    const N_WEEKS = 40
+    const N_WEEKS_PAST = 10
     const currentYear = Temporal.Now.plainDateISO().year
 
     const [dates, setDates] = createSignal([])
     const [events, setEvents] = createSignal([])
+    const now = Temporal.Now.plainDateISO()
+    const startDate = now.subtract({ days:(now.dayOfWeek - 1),weeks:N_WEEKS_PAST})
+    const endDate = startDate.add({weeks:N_WEEKS})
+    
+    const inRange = (t:TaskEvent) => t.end?.date && (t.begin?.date ? t.begin.date < endDate.toString() : t.end.date < endDate.toString())
 
-    const f = (node: Y.Map<any>) => [...(node.has(TASKEVENT) && node.get(TASKEVENT).end?.date ? [node] : []), ...(node.has(CHILDREN) ? node.get(CHILDREN).toArray().flatMap((n) => f(n)) : [])]
+    const f = (node: Y.Map<any>) => [...(node.has(TASKEVENT) && inRange(node.get(TASKEVENT)) ? [node] : []), ...(node.has(CHILDREN) ? node.get(CHILDREN).toArray().flatMap((n) => f(n)) : [])]
 
     const g = () => {
         let d = f(props.root)
@@ -51,25 +58,24 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
     // props.root.observeDeep(g)
     // onCleanup(() => props.root.unobserveDeep(g))
 
-    const now = Temporal.Now.plainDateISO()
 
     return (
-        <div class='grid grid-cols-7'>
-            <For each={[...Array.from({length:now.daysInYear},(_,index) => Temporal.PlainDate())]}>
+        <div class='grid grid-cols-7 '>
+            <For each={[...Array.from({ length: 7 * 40 }, (_, index) => startDate.add({ days: index }))]}>
                 {(item, index) =>
-                    <div class="p-1 border-b border-r" style={`grid-column: ${item/7} / ${}; grid-row: ${} / ${}`} classList={{ 'border-l': item % 7 === 0 }}>
-                        <div >{item}</div>
+                    <div class="p-1 border-b border-r" style={`grid-area:${Math.floor(index()/7) + 1} / ${index()%7 +1}` } classList={{ 'border-l': item.dayOfWeek === 1, 'bg-slate-100': item.month % 2 }}>
+                        <Show when={item.day === 1} fallback={item.toLocaleString('en-GB', { day: 'numeric' })}>{item.toLocaleString('en-GB', { month: 'short' })}</Show>
                     </div>
                 }
             </For>
             <For each={dates()}>
-                {item => <CalendarItem node={item} />}
+                {item => <CalendarItem node={item} startDate={startDate} endDate={endDate}/>}
             </For>
         </div>
     )
 }
 
-const CalendarItem: Component<{ node: Y.Map<any> }> = (props) => {
+const CalendarItem: Component<{ node: Y.Map<any>,startDate:Temporal.PlainDate, endDate:Temporal.PlainDate }> = (props) => {
     let r = {} as HTMLDialogElement
     const date = ySignal(props.node, TASKEVENT)
 
@@ -77,44 +83,53 @@ const CalendarItem: Component<{ node: Y.Map<any> }> = (props) => {
         <>
             <Switch>
                 <Match when={date().begin?.date && date().end?.date}>
-                    <Event node={props.node} date={date()} />
+                    <Event node={props.node} date={date()} startDate={props.startDate} endDate={props.endDate} />
                 </Match>
             </Switch>
         </>
     )
 }
 
-const getCalendarCoords = (date: TaskEvent) => {
-    const b = Temporal.PlainDate.from(date.begin!.date!)
-    const e = Temporal.PlainDate.from(date.end!.date!)
-    const startX = b.dayOfYear % 7
-    const startY = Math.floor(b.dayOfYear / 7)
-    const endX = e.dayOfYear % 7
-    const endY = Math.floor(e.dayOfYear / 7)
-    if (startY === endY) {
-        return [[startX+1, startY, endX, startY + 1]]
-    } else if (endY === startY+1) {
-        return [[startX + 1, startY, 8, startY + 1],[1,endY,endX,endY+1]]
-    } else {
-        return [[startX +1, startY, 8, startY + 1],...Array.from({length:endY-startY-1},(_,index)=> [1,index+startY+1,7,index+startY+2]),[1,endY,endX,endY+1]]
-    }
-
+const getCalendarCoords = (date: TaskEvent, startDate:Temporal.PlainDate, endDate:Temporal.PlainDate) => {
+    const b = Temporal.PlainDate.from(date.begin!.date!).since(startDate).days
+    const e = Math.min(Temporal.PlainDate.from(date.end!.date!).since(startDate).days,endDate.since(startDate).days)
+    const startX = b % 7 + 1
+    const startY = Math.floor(b / 7) + 1
+    const endX = e % 7 + 1
+    const endY = Math.floor(e / 7) + 1
+    const length = endY - startY
+    return Array.from({length},(_,index) => {
+        if (index === 0) {
+            if (length === 1) {
+                return {startX, startY, endX, endY}
+            } else {
+                return {startX ,startY, endX : 8, endY:startY+1}
+            }
+        } else if (index === length - 1) {
+            return {startX:1, startY:index+startY, endX, endY:startY+index+1}
+        } else {
+            return {startX : 1,endX:8, startY:startY+index, endY:startY+index+1}
+        }
+    })
 }
 
-const Event: Component<{ node: Y.Map<any>, date: TaskEvent }> = (props) => {
+const Event: Component<{ node: Y.Map<any>, date: TaskEvent, startDate:Temporal.PlainDate, endDate:Temporal.PlainDate}> = (props) => {
     let r
     return (
         <>
-            <For each={getCalendarCoords(props.date)}>
-                {item => <>
-                    <button onClick={() => r.showModal()} class='border z-10 border-red-700 bg-red-700/25' style={`grid-column: ${item[0]} / ${item[2]};grid-row: ${item[1]} / ${item[3]}`} />
-                    <dialog ref={r} onClick={() => r.close()}>
-                        <div onClick={e => e.stopImmediatePropagation()}>
-                            <div>{props.node.get(TEXT).toString()}</div>
-                            <TaskEventPicker node={props.node} date={props.date} />
-                        </div>
-                    </dialog>
-                </>}
+            <For each={getCalendarCoords(props.date,props.startDate, props.endDate)}>
+                {(item,index) =>
+                    <>
+                        <button onClick={() => r.showModal()} class=' border-red-700 text-4xl bg-red-700/50 text-white font-bold text-left' style={`grid-area: ${item.startY}/ ${item.startX}/ ${item.endY}/ ${item.endX}`}>
+                            <Show when={index() === 0}>{props.node.get(TEXT).toString()}</Show>
+                        </button>
+                        <dialog ref={r} onClick={(e) => {r.close()}}>
+                            <div onClick={e => e.stopPropagation()}>
+                                <div>{props.node.get(TEXT).toString()}</div>
+                                <TaskEventPicker node={props.node} date={props.date} />
+                            </div>
+                        </dialog>
+                    </>}
             </For >
         </>
     )

@@ -202,7 +202,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
                 <div class="flex flex-col">
 
                     <div class='relative' contentEditable={false}>
-                        <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} height='400px' width='100%' onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+                        <svg ref={s} class="cursor-crosshair border border-dashed bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
                             <For each={data()}>
                                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
                             </For>
