@@ -75,7 +75,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         requestAnimationFrame(() => {
             pending = false
             console.log(e.target)
-            r.style.transform = `translate(0,${e.target.offsetTop}px)`
+            // r.style.transform = `translate(0,${e.target.offsetTop}px)`
         })
 
     }
