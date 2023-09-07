@@ -85,9 +85,16 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     })
 
     return (
-        <div class='touch-pan-y grid grid-rows-[1fr_min-content]' >
+        <div class='touch-pan-y h-full grid grid-rows-[min-content_1fr_1fr]' >
             <Show when={synced()}>
-                <div class=''>
+                <div ref={r} class=' border-t text-gray-700 z-10 bg-white'>
+                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
+                    </For>
+                </div>
+                <div class='overflow-y-scroll'>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
                             <Switch>
@@ -99,13 +106,6 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                                 </Match>
                             </Switch>
                         </Show>}
-                    </For>
-                </div>
-                <div ref={r} class=' sticky bottom-0 border-t text-gray-700 z-10 bg-white'>
-                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-
-                    <For each={path()}>
-                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
                     </For>
                 </div>
             </Show >
