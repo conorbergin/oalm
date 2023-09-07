@@ -60,7 +60,7 @@ export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
 
 
     return (
-        <div class='grid grid-cols-7 '>
+        <div class='grid grid-cols-7 overflow-x-hidden'>
             <For each={[...Array.from({ length: 7 * 40 }, (_, index) => startDate.add({ days: index }))]}>
                 {(item, index) =>
                     <div class="p-1 border-b border-r" style={`grid-area:${Math.floor(index()/7) + 1} / ${index()%7 +1}` } classList={{ 'border-l': item.dayOfWeek === 1, 'bg-slate-100': item.month % 2 }}>

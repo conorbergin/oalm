@@ -68,7 +68,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     }
 
     return (
-        <div class='touch-pan-y'>
+        <div class='touch-pan-y h-screen grid grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
                 {/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
                     <div class='flex gap-2  border-b z-10 bg-white'>
@@ -83,19 +83,20 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
                     </For>
                 </div>
-                <For each={path()}>
-                    {(item, index) => <Show when={index() === path().length - 1}>
-                        <Switch>
-                            <Match when={view() === 0}>
-                                <EditorView node={item} setPath={setPath} path={path()} />
-                            </Match>
-                            <Match when={view() === 1}>
-                                <CalendarView root={item} />
-                            </Match>
-                        </Switch>
-                    </Show>}
-                </For>
-                {/* </div> */}
+                <div class='overflow-y-auto'>
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() === path().length - 1}>
+                            <Switch>
+                                <Match when={view() === 0}>
+                                    <EditorView node={item} setPath={setPath} path={path()} />
+                                </Match>
+                                <Match when={view() === 1}>
+                                    <CalendarView root={item} />
+                                </Match>
+                            </Switch>
+                        </Show>}
+                    </For>
+                </div>
             </Show >
         </div>
     )
