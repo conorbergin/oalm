@@ -82,6 +82,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
 
     onMount(() => {
         window.visualViewport?.addEventListener('resize', viewHandler)
+        window.visualViewport?.addEventListener('scroll', viewHandler)
     })
 
     return (
