@@ -115,27 +115,29 @@ export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (p
     let rows = yArraySignal(props.node.get('items'))
 
     const commands = [
-        {name: 'delete', run: () => yDeleteFromArray(props.node)},
-        {name: '+ row', run: () => addRow(props.node)},
-        {name: '+ col', run: () => addColumn(props.node)}
+        { name: 'delete', run: () => yDeleteFromArray(props.node) },
+        { name: '+ row', run: () => addRow(props.node) },
+        { name: '+ col', run: () => addColumn(props.node) }
     ]
     return (
         <ContentContainer node={props.node} state={props.state} commands={commands} >
-            <div class="grid overflow-x-scroll h-fit" style={{ "grid-template-columns": `repeat(${header().length }, minmax(5rem,max-content))`, }}>
-                <For each={header()}>
-                    {(item, index) =>
-                        <div classList={{ 'border-l': index() === 0 }} class="border-b border-r border-t border-black font-bold p-1">
-                            <TextView node={item.get('name')} state={props.state} tag={'p'}/>
-                        </div>}
-                </For>
-                <For each={rows()}>
-                    {(item) =>
-                        <For each={header()}>{(header,index) =>
-                            <div classList={{ 'border-l': index() === 0 }} class="border-b border-r p-1">
-                                <TextView node={item.get(header.get('id')) as Y.Text} state={props.state} tag={'p'}/>
+            <div class='overflow-x-scroll'>
+                <div class="grid w-64 h-fit" style={{ "grid-template-columns": `repeat(${header().length}, minmax(5rem,max-content))`, }}>
+                    <For each={header()}>
+                        {(item, index) =>
+                            <div classList={{ 'border-l': index() === 0 }} class="border-b border-r border-t border-black font-bold p-1">
+                                <TextView node={item.get('name')} state={props.state} tag={'p'} />
                             </div>}
-                        </For>}
-                </For>
+                    </For>
+                    <For each={rows()}>
+                        {(item) =>
+                            <For each={header()}>{(header, index) =>
+                                <div classList={{ 'border-l': index() === 0 }} class="border-b border-r p-1">
+                                    <TextView node={item.get(header.get('id')) as Y.Text} state={props.state} tag={'p'} />
+                                </div>}
+                            </For>}
+                    </For>
+                </div>
             </div>
         </ContentContainer>
     )

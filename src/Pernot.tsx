@@ -67,26 +67,26 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         }
     }
 
-    let r: HTMLDivElement
-    let pending = false
-    const viewHandler = (e) => {
-        if (pending) return
-        pending = true
-        requestAnimationFrame(() => {
-            pending = false
-            console.log(e.target)
-            r.style.transform = `translate(0,${e.target.offsetTop}px)`
-        })
+    // let r: HTMLDivElement
+    // let pending = false
+    // const viewHandler = (e) => {
+    //     if (pending) return
+    //     pending = true
+    //     requestAnimationFrame(() => {
+    //         pending = false
+    //         console.log(e.target)
+    //         r.style.transform = `translate(0,${e.target.offsetTop}px)`
+    //     })
 
-    }
+    // }
 
-    onMount(() => {
-        window.visualViewport?.addEventListener('resize', viewHandler)
-        window.visualViewport?.addEventListener('scroll', viewHandler)
-    })
+    // onMount(() => {
+    //     window.visualViewport?.addEventListener('resize', viewHandler)
+    //     window.visualViewport?.addEventListener('scroll', viewHandler)
+    // })
 
     return (
-        <div class='touch-pan-y grid grid-rows-[min-content_1fr]' >
+        <div class='touch-pan-y grid w-screen grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
                 <div class='sticky top-0 border-b text-gray-700 z-10 bg-white'>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
