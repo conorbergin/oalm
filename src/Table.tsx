@@ -121,7 +121,7 @@ export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (p
     ]
     return (
         <ContentContainer node={props.node} state={props.state} commands={commands} >
-            <div class='overflow-x-scroll'>
+            <div class='overflow-x-auto'>
                 <div class="grid w-64 h-fit" style={{ "grid-template-columns": `repeat(${header().length}, minmax(5rem,max-content))`, }}>
                     <For each={header()}>
                         {(item, index) =>
