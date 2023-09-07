@@ -66,9 +66,13 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
             }
         }
     }
+    let r :HTMLDivElement
+    onMount(() => {
+        r.onscroll = () => scrollTo(0,0)
+    })
 
     return (
-        <div class='touch-pan-y h-screen grid grid-rows-[min-content_1fr]' >
+        <div ref={r} class='touch-pan-y h-screen grid grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
                 {/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
                     <div class='flex gap-2  border-b z-10 bg-white'>
