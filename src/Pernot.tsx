@@ -70,13 +70,12 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     let r :HTMLDivElement
     let pending = false
     const viewHandler = (e) => {
-        console.log('scroll')
         if (pending) return
         pending = true
         requestAnimationFrame(() => {
             pending = false
-            console.log(e.target.pageTop)
-            r.style.transform = `translate(0,${e.target.pageTop}px)`
+            console.log(e.target)
+            r.style.transform = `translate(0,${e.target.offsetTop}px)`
         })
 
     }
@@ -94,7 +93,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
                     </div> */}
-                <div ref={r} class='border-b text-gray-700 z-10 bg-white'>
+                <div ref={r} class=' sticky top-0 border-b text-gray-700 z-10 bg-white'>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
