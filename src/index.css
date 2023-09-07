@@ -31,7 +31,7 @@ button::selection {
     background: transparent;
 }
 
-dialog {
+/* dialog {
     border-radius: 1rem;
     z-index:11;
     padding: 30px;
@@ -41,7 +41,7 @@ dialog::backdrop {
     opacity: 0.25;
     background-color: gray
 
-}
+} */
 
 a {
     color: darkcyan
