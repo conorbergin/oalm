@@ -67,7 +67,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         }
     }
 
-    let r :HTMLDivElement
+    let r: HTMLDivElement
     let pending = false
     const viewHandler = (e) => {
         if (pending) return
@@ -80,26 +80,13 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
 
     }
 
-    onMount(()=> {
-        window.visualViewport?.addEventListener('scroll',viewHandler)
+    onMount(() => {
+        window.visualViewport?.addEventListener('scroll', viewHandler)
     })
 
     return (
-        <div  class='touch-pan-y grid grid-rows-[min-content_1fr]' >
+        <div class='touch-pan-y grid grid-rows-[1fr_min-content]' >
             <Show when={synced()}>
-                {/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
-                    <div class='flex gap-2  border-b z-10 bg-white'>
-                        <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
-                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                        <button onClick={() => props.setLogin(false)}>Sign out</button>
-                    </div> */}
-                <div ref={r} class=' sticky top-0 border-b text-gray-700 z-10 bg-white'>
-                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-
-                    <For each={path()}>
-                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
-                    </For>
-                </div>
                 <div class=''>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
@@ -114,8 +101,21 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         </Show>}
                     </For>
                 </div>
+                <div ref={r} class=' sticky bottom-0 border-t text-gray-700 z-10 bg-white'>
+                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
+                    </For>
+                </div>
             </Show >
         </div>
     )
 }
 
+{/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
+                    <div class='flex gap-2  border-b z-10 bg-white'>
+                        <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
+                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                        <button onClick={() => props.setLogin(false)}>Sign out</button>
+    </div>*/}
