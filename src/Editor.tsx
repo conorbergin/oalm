@@ -15,7 +15,7 @@ import { yDeleteFromArray, yArraySignal, yReplaceInArray } from './utils';
 export const [lock, setLock] = createSignal(false)
 
 import { DTNode, MaybeDT } from './DatePicker';
-import { Dialog } from './Dialog';
+import { Dialog, Modal } from './Dialog';
 import { AgendaView } from './Agenda';
 import { setContext } from 'tone';
 
@@ -269,16 +269,12 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
             <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
-            <Show when={palette()}>
-                <div contentEditable={false} class="fixed top-0 left-0 w-screen h-screen bg-gray-400/25" onClick={() => setPalette(false)} >
-                    <div class='absolute bg-white flex border rounded gap-1' style={`top:${paletteCoords().y}px;left:${paletteCoords().x}px`}>
-                        <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
-                        <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
-                        <button onClick={() => { yReplaceInArray(selection.node.parent, newEmbed()) }}>Embed</button>
-                        <button onClick={() => { yReplaceInArray(selection.node.parent, newTable('')[0]) }}>Table</button>
-                    </div>
-                </div>
-            </Show>
+            <Modal show={palette()} setShow={setPalette}>
+                <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
+                <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
+                <button onClick={() => { yReplaceInArray(selection.node.parent, newEmbed()) }}>Embed</button>
+                <button onClick={() => { yReplaceInArray(selection.node.parent, newTable('')[0]) }}>Table</button>
+            </Modal>
         </div>
     )
 }
@@ -331,16 +327,14 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
     return (
         <>
-            <Show when={menu()}>
-                <div contentEditable={props.depth !== 0} class='fixed top-0 left-0 w-screen h-screen bg-gray-400/25' onClick={() => setMenu(false)}>
-                    <div class='absolute bg-white p-1 rounded border flex flex-col' style={`left:${coords().x}px;top:${coords().y}px`}>
-                        <button onClick={() => yDeleteFromArray(props.node)} >delete</button>
-                        <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
-                        <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
-                        <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
-                    </div>
-                </div>
-            </Show>
+            <Modal show={menu()} setShow={setMenu}>
+                <>
+                    <button onClick={() => yDeleteFromArray(props.node)} >delete</button>
+                    <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
+                    <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
+                    <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
+                </>
+            </Modal>
             <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section': props.depth !== 0 }} style={props.depth === 0 ? 'grid-column:2/3' : ''}>
                 <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{ 'border-l': props.last }} contentEditable={false}><MaybeDT node={props.node} /></div>
                 <div class='leading-none flex gap-1 font-bold text-2xl'>
@@ -426,18 +420,14 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
     })
     return (
         <>
-            <Show when={menu()}>
-                <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-gray-400/25 z-10' onClick={() => setMenu(false)}>
-                    <div class='absolute p-1 bg-white border rounded' style={`left:${coords().x}px;top:${coords().y}px`}>
-                        <div class='flex-col'>
+            <Modal show={menu()} setShow={setMenu}>
+                <div class='flex-col'>
 
-                            <For each={props.commands}>
-                                {(command) => <div><button onClick={command.run} >{command.name}</button></div>}
-                            </For>
-                        </div>
-                    </div>
+                    <For each={props.commands}>
+                        {(command) => <div><button onClick={command.run} >{command.name}</button></div>}
+                    </For>
                 </div>
-            </Show>
+            </Modal>
             <div ref={r} class="flex gap-1 content">
                 <div contentEditable={false}>
                     <button class="font-bold text-gray-400 touch-none border-l h-full flex" onpointerdown={handleDrag}>
