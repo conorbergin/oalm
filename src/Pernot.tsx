@@ -88,7 +88,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <div class='touch-pan-y grid grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
-                <div ref={r} class='sticky top-0 border-b text-gray-700 z-10 bg-white'>
+                <div class='sticky top-0 border-b text-gray-700 z-10 bg-white'>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
