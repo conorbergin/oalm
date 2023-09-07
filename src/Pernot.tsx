@@ -75,26 +75,26 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         requestAnimationFrame(() => {
             pending = false
             console.log(e.target)
-            // r.style.transform = `translate(0,${e.target.offsetTop}px)`
+            r.style.transform = `translate(0,${e.target.offsetTop}px)`
         })
 
     }
 
     onMount(() => {
-        window.visualViewport?.addEventListener('scroll', viewHandler)
+        window.visualViewport?.addEventListener('resize', viewHandler)
     })
 
     return (
-        <div class='touch-pan-y fixed w-full h-[50%] grid grid-rows-[min-content_1fr]' >
+        <div class='touch-pan-y grid grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
-                <div ref={r} class=' border-b text-gray-700 z-10 bg-white'>
+                <div ref={r} class='sticky top-0 border-b text-gray-700 z-10 bg-white'>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
                         {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
                     </For>
                 </div>
-                <div class='overflow-y-scroll'>
+                <div class=''>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
                             <Switch>
