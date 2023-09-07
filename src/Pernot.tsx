@@ -66,13 +66,27 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
             }
         }
     }
+
     let r :HTMLDivElement
-    // onMount(() => {
-    //     r.onscroll = () => scrollTo(0,0)
-    // })
+    let pending = false
+    const viewHandler = (e) => {
+        console.log('scroll')
+        if (pending) return
+        pending = true
+        requestAnimationFrame(() => {
+            pending = false
+            console.log(e.target.pageTop)
+            r.style.transform = `translate(0,${e.target.pageTop}px)`
+        })
+
+    }
+
+    onMount(()=> {
+        window.visualViewport?.addEventListener('scroll',viewHandler)
+    })
 
     return (
-        <div ref={r} class='touch-pan-y grid grid-rows-[min-content_1fr]' style='height:100dvh' >
+        <div  class='touch-pan-y grid grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
                 {/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
                     <div class='flex gap-2  border-b z-10 bg-white'>
@@ -80,14 +94,14 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                         <button onClick={() => props.setLogin(false)}>Sign out</button>
                     </div> */}
-                <div class='border-b text-gray-700'>
+                <div ref={r} class='border-b text-gray-700 z-10 bg-white'>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
                         {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
                     </For>
                 </div>
-                <div class='overflow-y-auto'>
+                <div class=''>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
                             <Switch>
