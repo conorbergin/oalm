@@ -21,6 +21,8 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
 
     const [synced, setSynced] = createSignal(false)
     const [calendar, setCalendar] = createSignal(false)
+    const [canUndo, setCanUndo] = createSignal(false)
+    const [canRedo, setCanRedo] = createSignal(false)
     const [path, setPath] = createSignal([])
     const viewStates = ['Outline', 'Calendar']
     const [view, setView] = createSignal(0)
@@ -39,6 +41,8 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
             console.log(ydoc.get('root').toJSON())
             setPath([ydoc.get('root')])
             undoManager = new Y.UndoManager(ydoc.get('root'))
+            undoManager.on('stack-item-added', () => {setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo())} )
+            undoManager.on('stack-item-popped', () => {setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo())} )
             setSynced(true)
         })
     })
@@ -90,8 +94,8 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
                 <div class='sticky top-0 border-b text-gray-700 z-10 bg-white flex gap-1 p-1'>
-                    <button classList={{ 'text-gray-400': !undoManager.canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo/></button>
-                    <button classList={{ 'text-gray-400': !undoManager.canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo/></button>
+                    <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo/></button>
+                    <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo/></button>
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
