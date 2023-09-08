@@ -182,7 +182,21 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
     document.addEventListener('pointerup', handlePointerUp)
 }
 
-export const [msg, setMsg] = createSignal('')
+
+
+const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
+    return (
+        <div style='display:grid; grid-template-columns: 3px 8px 8px 3px; grid-template-rows: 0.4rem 8px 8px 1fr;height:100%'>
+            <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{ 'border-l': props.last }} class='border-b' />
+
+            <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{ 'rounded-full': !props.section }} />
+
+            <div style='grid-column-start:3;grid-row-start:4' classList={{ 'border-l': props.sprogs }} />
+
+        </div>
+    )
+}
+
 
 
 export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>> }> = (props) => {
@@ -266,29 +280,17 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
     return (
         <div >
 
-            <div class="font-body editor" style='display:grid;grid-template-columns:1fr min(100%,70ch) 1fr' contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+            <div class="font-body editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
                 <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
             </div >
             <Modal show={palette()} setShow={setPalette}>
-                <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
-                <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
-                <button onClick={() => { yReplaceInArray(selection.node.parent, newEmbed()) }}>Embed</button>
-                <button onClick={() => { yReplaceInArray(selection.node.parent, newTable('')[0]) }}>Table</button>
+                <div class='flex flex-col'>
+                    <button onClick={() => { yReplaceInArray(selection.node.parent, newPaint()) }}>Paint</button>
+                    <button onClick={() => { yReplaceInArray(selection.node.parent, newPiece()) }}>Song</button>
+                    <button onClick={() => { yReplaceInArray(selection.node.parent, newEmbed()) }}>Embed</button>
+                    <button onClick={() => { yReplaceInArray(selection.node.parent, newTable('')[0]) }}>Table</button>
+                </div>
             </Modal>
-        </div>
-    )
-}
-
-
-const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
-    return (
-        <div style='display:grid; grid-template-columns: 3px 8px 8px 3px; grid-template-rows: 0.4rem 8px 8px 1fr;height:100%'>
-            <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{ 'border-l': props.last }} class='border-b' />
-
-            <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{ 'rounded-full': !props.section }} />
-
-            <div style='grid-column-start:3;grid-row-start:4' classList={{ 'border-l': props.sprogs }} />
-
         </div>
     )
 }
@@ -328,12 +330,12 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
     return (
         <>
             <Modal show={menu()} setShow={setMenu}>
-                <>
-                    <button onClick={() => yDeleteFromArray(props.node)} >delete</button>
+                <div class='flex flex-col'>
+                    <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
                     <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
                     <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
                     <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
-                </>
+                </div>
             </Modal>
             <div ref={s} class='text-xl  flex flex-col' classList={{ 'border-l': !props.last, 'section': props.depth !== 0 }} style={props.depth === 0 ? 'grid-column:2/3' : ''}>
                 <div class='leading-none text-sm font-bold pl-5 pr-5 pt-1' classList={{ 'border-l': props.last }} contentEditable={false}><MaybeDT node={props.node} /></div>
@@ -429,9 +431,9 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
                 </div>
             </Modal>
             <div ref={r} class="flex gap-1 content">
-                <div contentEditable={false}>
-                    <button class="font-bold text-gray-400 touch-none border-l h-full flex" onpointerdown={handleDrag}>
-                        <HandleIcon2 last={false} section={false} sprogs={false} />
+                <div contentEditable={false} class='bg-gray-200 border-white border-2 rounded-full'>
+                    <button class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
+                        {/* <HandleIcon2 last={false} section={false} sprogs={false} /> */}
                     </button>
                 </div>
                 <div class='flex-1'>

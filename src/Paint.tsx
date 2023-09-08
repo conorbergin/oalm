@@ -8,7 +8,7 @@ import { yDeleteFromArray, yArraySignal } from "./utils";
 
 
 import { getStroke } from 'perfect-freehand'
-import { Dialog } from "./Dialog";
+import { Dialog, Modal } from "./Dialog";
 import { NonTextView } from "./Text";
 const average = (a, b) => (a + b) / 2
 
@@ -159,34 +159,48 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     }
 
     const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
-    let ytext = new Y.Text('')
+
+    const [show, setShow] = createSignal(false)
     return (
         <>
             <ContentContainer node={props.node} state={props.state} commands={commands}>
-                <div class="flex flex-col">
+                <div class='flex' contentEditable={false} onClick={() => setShow(true)}>
+                    <svg viewBox="0 0 1000 1000" ref={s} class="border h-64 bg-white ">
+                        <For each={data()}>
+                            {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+                        </For>
+                    </svg>
+                </div>
+                <Modal show={show()} setShow={setShow}>
+                    <div class='flex flex-col' onClick={e => e.stopPropagation()} >
+                        <div class='flex'>
+                            <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+                            <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
+                            <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
+                            <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
+                            <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
+                        </div>
 
-                    <div class='relative w-full' contentEditable={false}>
-                        <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border w-full bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+
+                        <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border w-screen bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
                             <For each={data()}>
                                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
                             </For>
                         </svg>
-                        <Show when={false}>
-                            <div class="absolute top-0 right-0 flex gap-1">
-                                <input type="range" min="4" max="32" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
-                                <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
-                                <div classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></div>
-                                <div classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></div>
-                                <div classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></div>
-                            </div>
-
-                            {/* <div class="absolute bottom-0 right-0">
-                                <button onPointerDown={handleCanvasResize}>/</button>
-                            </div> */}
-                        </Show>
                     </div>
-                </div>
+                </Modal>
             </ContentContainer>
         </>
     )
 }
+
+
+
+{/* <Show when={false}>
+<div class="absolute top-0 right-0 flex gap-1">
+
+</div>
+
+{/* <div class="absolute bottom-0 right-0">
+    <button onPointerDown={handleCanvasResize}>/</button>
+</div> */}
