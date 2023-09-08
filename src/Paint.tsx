@@ -165,7 +165,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     <>
       <ContentContainer node={props.node} state={props.state} commands={commands}>
         <div class='flex' contentEditable={false} onClick={() => setShow(true)}>
-          <svg viewBox="0 0 1000 1000" ref={s} class="border h-64 bg-white ">
+          <svg viewBox="0 0 1000 1000" ref={s} class="border  bg-white ">
             <For each={data()}>
               {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
             </For>
@@ -179,11 +179,10 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
               <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
-              <button onClick={() => setShow(false)}><Icons.Exit/></button>
             </div>
 
 
-            <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border  bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+            <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
               <For each={data()}>
                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
               </For>

@@ -1,4 +1,4 @@
-import { Component, Setter, JSX,Accessor, createEffect } from "solid-js"
+import { Component, Setter, JSX, Accessor, createEffect } from "solid-js"
 
 import { Portal } from "solid-js/web"
 
@@ -9,8 +9,8 @@ import { Portal } from "solid-js/web"
 //   setShow: Setter<boolean>
 // }
 
-export const Dialog: Component<{ children: any, show: boolean,setShow: Setter<boolean> }> = (props) => {
-  let r : HTMLDialogElement
+export const Dialog: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
+  let r: HTMLDialogElement
   createEffect(() => {
     if (props.show) {
       r.show()
@@ -19,15 +19,15 @@ export const Dialog: Component<{ children: any, show: boolean,setShow: Setter<bo
     }
   })
   return (
-    <dialog  contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
+    <dialog contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
       {props.children}
     </dialog>
   )
 }
 
 
-export const Modal: Component<{ children: any, show: boolean,setShow: Setter<boolean> }> = (props) => {
-  let r : HTMLDialogElement
+export const Modal: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
+  let r: HTMLDialogElement
   createEffect(() => {
     if (props.show) {
       r.showModal()
@@ -36,15 +36,17 @@ export const Modal: Component<{ children: any, show: boolean,setShow: Setter<boo
     }
   })
   return (
-    <dialog  contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
-      {props.children}
+    <dialog contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
+      <div onClick={e => e.stopPropagation()}>
+        {props.children}
+      </div>
     </dialog>
   )
 }
 
 
-export const ModalFull: Component<{ children: any, show: boolean,setShow: Setter<boolean> }> = (props) => {
-  let r : HTMLDialogElement
+export const ModalFull: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
+  let r: HTMLDialogElement
   createEffect(() => {
     if (props.show) {
       r.showModal()
@@ -55,6 +57,6 @@ export const ModalFull: Component<{ children: any, show: boolean,setShow: Setter
   return (
     <dialog class='w-full h-full' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
       {props.children}
-    </dialog>
+    </dialog >
   )
 }

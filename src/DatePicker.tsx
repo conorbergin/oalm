@@ -88,7 +88,7 @@ export type TaskEvent = {
 }
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
-const TASKEVENT = '10'
+export const TASKEVENT = '10'
 
 const durationString = (t: string) => Temporal.Duration.from(t).toString().slice(1).toLowerCase()
 
@@ -120,7 +120,7 @@ const dateString = (t: string, u?: string) => {
 }
 
 
-const TaskEventString: Component<{ taskEvent: TaskEvent }> = (props) => {
+export const TaskEventString: Component<{ taskEvent: TaskEvent }> = (props) => {
   return (
     <Switch>
       <Match when={props.taskEvent.end?.date && props.taskEvent.begin?.date}>{dateString(props.taskEvent.begin!.date!, props.taskEvent.end!.date!)}</Match>
