@@ -41,3 +41,20 @@ export const Modal: Component<{ children: any, show: boolean,setShow: Setter<boo
     </dialog>
   )
 }
+
+
+export const ModalFull: Component<{ children: any, show: boolean,setShow: Setter<boolean> }> = (props) => {
+  let r : HTMLDialogElement
+  createEffect(() => {
+    if (props.show) {
+      r.showModal()
+    } else {
+      r.close()
+    }
+  })
+  return (
+    <dialog class='w-full h-full' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
+      {props.children}
+    </dialog>
+  )
+}
