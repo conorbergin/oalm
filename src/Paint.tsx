@@ -171,12 +171,12 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
             </For>
           </svg>
         </div>
-        <ModalFull show={show()} setShow={setShow}>
-          <div class='flex flex-col' onClick={e => e.stopPropagation()} >
-            <div class='flex justify-between gap-2'>
-              <input type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
-              <input class='w-min-4' type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
-              <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}><Icons.Finger /></button>
+        <Modal show={show()} setShow={setShow}>
+          <div class='flex flex-col p-2' style='width: min(100%,90ch)' onClick={e => e.stopPropagation()} >
+            <div class='flex flex-wrap'>
+              <input  type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+              <input  type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
+              <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
               <button onClick={() => setShow(false)}><Icons.Exit/></button>
@@ -189,7 +189,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
               </For>
             </svg>
           </div>
-        </ModalFull>
+        </Modal>
       </ContentContainer>
     </>
   )

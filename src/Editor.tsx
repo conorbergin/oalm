@@ -342,9 +342,9 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 <div class='leading-none flex gap-1 font-bold text-2xl'>
 
                     <div contentEditable={false} class='flex'>
-                        <button class="text-gray-500 font-bold flex touch-none" onpointerdown={handleDrag} >
+                        <div class="text-gray-500 font-bold flex touch-none" onpointerdown={handleDrag} >
                             <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} />
-                        </button>
+                        </div>
                     </div>
 
 
@@ -432,9 +432,9 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
             </Modal>
             <div ref={r} class="flex gap-1 content">
                 <div contentEditable={false} class='bg-gray-200 border-white border-2 rounded-full'>
-                    <button class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
+                    <div class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
                         {/* <HandleIcon2 last={false} section={false} sprogs={false} /> */}
-                    </button>
+                    </div>
                 </div>
                 <div class='flex-1'>
                     {props.children}

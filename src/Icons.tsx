@@ -88,3 +88,13 @@ export const Exit: Component = () => (
         <path d='M 1 15 l 14 -14' stroke='currentColor' stroke-width='2'/>
     </svg>
 )
+
+export const Undo:Component = () => (
+    <svg class='w-6 h-6' viewBox='0 0 16 16'>
+        <path d='M 2 5 l 12 0 l 0 8 l -12 0' stroke='currentColor' fill='none' stroke-width='1'/>
+        <path d='M 5 2 l -3 3 l 3 3' stroke='currentColor' fill='none' stroke-width='1'/>
+    </svg>
+)
+
+export const Redo:Component = () => <div style='transform: scaleX(-1)'><Undo/></div>
+
