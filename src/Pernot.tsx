@@ -95,7 +95,7 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
                     <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
 
                     <For each={path()}>
-                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()}&gt;</button></Show>}
+                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()} &gt;</button></Show>}
                     </For>
                 </div>
                 <div class=''>

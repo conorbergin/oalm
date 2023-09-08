@@ -211,10 +211,8 @@ const cleverDateSetter = (node: Y.Map<any>, taskEvent: TaskEvent | null, date: s
       node.set(TASKEVENT, { end: taskEvent.end })
     } else if (date === taskEvent.end.date) {
       node.set(TASKEVENT, { begin: taskEvent.begin })
-    } else if (date > taskEvent.end.date) {
-      node.set(TASKEVENT, { begin: taskEvent.begin, end: { date: date } })
     } else if (date > midpoint) {
-      node.set(TASKEVENT, { begin: { date: date }, end: taskEvent.end })
+      node.set(TASKEVENT, { begin: taskEvent.begin, end: { date: date } })
     } else {
       node.set(TASKEVENT, { begin: { date: date }, end: taskEvent.end })
     }
