@@ -120,10 +120,3 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
         </div>
     )
 }
-
-{/* <div class='fixed w-full h-full' style='display:grid; grid-template-rows: min-content 1fr;'>
-                    <div class='flex gap-2  border-b z-10 bg-white'>
-                        <button onClick={() => path().length > 1 && setPath(p => [...p.slice(0, -1)])}>⮤</button>
-                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                        <button onClick={() => props.setLogin(false)}>Sign out</button>
-    </div>*/}

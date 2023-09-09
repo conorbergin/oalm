@@ -1,4 +1,4 @@
-import { Component, Setter, JSX, Accessor, createEffect } from "solid-js"
+import { Component, Setter, JSX, Accessor, createEffect,Show } from "solid-js"
 
 import { Portal } from "solid-js/web"
 
@@ -46,17 +46,13 @@ export const Modal: Component<{ children: any, show: boolean, setShow: Setter<bo
 
 
 export const ModalFull: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
-  let r: HTMLDialogElement
-  createEffect(() => {
-    if (props.show) {
-      r.showModal()
-    } else {
-      r.close()
-    }
-  })
   return (
-    <dialog class='w-full h-full' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
-      {props.children}
-    </dialog >
+    <Show when={props.show}>
+      <Portal>
+        <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-white z-20'>
+          {props.children}
+        </div>
+      </Portal>
+    </Show>
   )
 }

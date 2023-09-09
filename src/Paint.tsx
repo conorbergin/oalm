@@ -3,7 +3,7 @@ import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack,
 import * as Icons from "./Icons";
 
 import { drag, EditorState, ContentContainer } from './Editor'
-import { yDeleteFromArray, yArraySignal } from "./utils";
+import { yDeleteFromArray, yArraySignal, ySignal } from "./utils";
 
 
 
@@ -43,6 +43,10 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
 
   let s
 
+  //fixer
+  if (!props.node.has('zoom')) props.node.set('zoom', 1)
+  if (!props.node.has('aspect')) props.node.set('aspect', 1)
+
   const [allowTouch, setAllowTouch] = createSignal(false)
   const [color, setColor] = createSignal('black')
   const [fill, setFill] = createSignal(false)
@@ -54,6 +58,10 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
 
 
   const data = yArraySignal(props.node.get('paint'))
+  const zoom = ySignal(props.node, 'zoom')
+  const aspect = ySignal(props.node, 'aspect')
+  const viewBox = () => `-${500 * zoom() * aspect()} -${500 * zoom() / aspect()} ${1000 * zoom() * aspect()} ${1000 * zoom() / aspect()}`
+
 
 
 
@@ -165,30 +173,36 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     <>
       <ContentContainer node={props.node} state={props.state} commands={commands}>
         <div class='flex' contentEditable={false} onClick={() => setShow(true)}>
-          <svg viewBox="0 0 1000 1000" ref={s} class="border  bg-white ">
+          <svg viewBox={viewBox()} ref={s} class="border  bg-white ">
             <For each={data()}>
               {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
             </For>
           </svg>
         </div>
-        <Modal show={show()} setShow={setShow}>
-          <div class='flex flex-col p-2' style='width: min(100%,90ch)' onClick={e => e.stopPropagation()} >
+        <ModalFull show={show()} setShow={setShow}>
+          <div class='flex flex-col p-2 m-auto max-h-full' onClick={e => e.stopPropagation()} >
             <div class='flex flex-wrap'>
-              <input  type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
-              <input  type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
+              <input type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+              <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
               <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
+              <button onClick={() => setShow(false)}><Icons.Exit /></button>
             </div>
 
+              <svg viewBox={viewBox()} ref={s} class='border self-center' preserveAspectRatio='xMaxYMax meet' classList={{'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+                <For each={data()}>
+                  {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+                </For>
+              </svg>
+            <div>
+              <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
+              <input type="range" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
 
-            <svg viewBox="0 0 1000 1000" ref={s} class="cursor-crosshair border bg-white flex-1" classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
-              <For each={data()}>
-                {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
-              </For>
-            </svg>
+
+            </div>
           </div>
-        </Modal>
+        </ModalFull>
       </ContentContainer>
     </>
   )
