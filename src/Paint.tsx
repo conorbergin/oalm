@@ -173,13 +173,13 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     <>
       <ContentContainer node={props.node} state={props.state} commands={commands}>
         <div class='flex' contentEditable={false} onClick={() => setShow(true)}>
-          <svg viewBox={viewBox()} ref={s} class="border  bg-white ">
+          <svg viewBox={viewBox()} ref={s} class="border w-full bg-white ">
             <For each={data()}>
               {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
             </For>
           </svg>
         </div>
-        <Modal show={show()} setShow={setShow}>
+        <ModalFull show={show()} setShow={setShow}>
           <div class='flex flex-col p-2 gap-2 m-auto h-screen w-screen justify-between' onClick={e => e.stopPropagation()} >
             <div class='flex justify-between'>
               <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
@@ -199,12 +199,9 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
               <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
-
-
-
             </div>
           </div>
-        </Modal>
+        </ModalFull>
       </ContentContainer>
     </>
   )

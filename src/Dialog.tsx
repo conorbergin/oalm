@@ -1,4 +1,4 @@
-import { Component, Setter, JSX, Accessor, createEffect,Show } from "solid-js"
+import { Component, Setter, JSX, Accessor, createEffect, Show, onCleanup } from "solid-js"
 
 import { Portal } from "solid-js/web"
 
@@ -46,10 +46,17 @@ export const Modal: Component<{ children: any, show: boolean, setShow: Setter<bo
 
 
 export const ModalFull: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
+  createEffect(() => {
+    if (props.show) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'auto'
+    }
+  })
   return (
     <Show when={props.show}>
       <Portal>
-        <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-white z-100 overflow-hidden'>
+        <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-white z-20'>
           {props.children}
         </div>
       </Portal>
