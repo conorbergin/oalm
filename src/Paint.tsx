@@ -179,8 +179,8 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
             </For>
           </svg>
         </div>
-        <ModalFull show={show()} setShow={setShow}>
-          <div class='flex flex-col p-2 gap-2 m-auto h-full justify-between' onClick={e => e.stopPropagation()} >
+        <Modal show={show()} setShow={setShow}>
+          <div class='flex flex-col p-2 gap-2 m-auto h-screen w-screen justify-between' onClick={e => e.stopPropagation()} >
             <div class='flex justify-between'>
               <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
               <input type="range" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
@@ -204,7 +204,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
 
             </div>
           </div>
-        </ModalFull>
+        </Modal>
       </ContentContainer>
     </>
   )

@@ -49,7 +49,7 @@ export const ModalFull: Component<{ children: any, show: boolean, setShow: Sette
   return (
     <Show when={props.show}>
       <Portal>
-        <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-white z-20 overflow-hidden'>
+        <div contentEditable={false} class='fixed top-0 left-0 w-screen h-screen bg-white z-100 overflow-hidden'>
           {props.children}
         </div>
       </Portal>
