@@ -180,24 +180,26 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
           </svg>
         </div>
         <ModalFull show={show()} setShow={setShow}>
-          <div class='flex flex-col p-2 m-auto max-h-full' onClick={e => e.stopPropagation()} >
-            <div class='flex flex-wrap'>
+          <div class='flex flex-col p-2 gap-2 m-auto h-full justify-between' onClick={e => e.stopPropagation()} >
+            <div class='flex justify-between'>
+              <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
+              <input type="range" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
+
+              <button onClick={() => setShow(false)}><Icons.Exit /></button>
+            </div>
+
+            <svg viewBox={viewBox()} ref={s} class='border self-center' preserveAspectRatio='xMaxYMax meet' classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+              <For each={data()}>
+                {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+              </For>
+            </svg>
+            <div class='flex justify-center gap'>
               <input type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
               <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
               <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
-              <button onClick={() => setShow(false)}><Icons.Exit /></button>
-            </div>
 
-              <svg viewBox={viewBox()} ref={s} class='border self-center' preserveAspectRatio='xMaxYMax meet' classList={{'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
-                <For each={data()}>
-                  {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
-                </For>
-              </svg>
-            <div>
-              <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
-              <input type="range" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
 
 
             </div>
