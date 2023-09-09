@@ -41,8 +41,8 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
             console.log(ydoc.get('root').toJSON())
             setPath([ydoc.get('root')])
             undoManager = new Y.UndoManager(ydoc.get('root'))
-            undoManager.on('stack-item-added', () => {setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo())} )
-            undoManager.on('stack-item-popped', () => {setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo())} )
+            undoManager.on('stack-item-added', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+            undoManager.on('stack-item-popped', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
             setSynced(true)
         })
     })
@@ -93,14 +93,18 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
-                <div class='sticky top-0 border-b text-gray-700 z-10 bg-white flex gap-1 p-1'>
-                    <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo/></button>
-                    <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo/></button>
-                    <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-
-                    <For each={path()}>
-                        {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()} &gt;</button></Show>}
-                    </For>
+                <div class='sticky top-0 border-b z-10 bg-white flex justify-between p-1 max-w-full'>
+                    <div class='flex gap-1'>
+                        <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo /></button>
+                        <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo /></button>
+                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                        <div class='flex overflow-auto'>
+                            <For each={path()}>
+                                {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()} &gt;</button></Show>}
+                            </For>
+                        </div>
+                    </div>
+                    <button onClick={() => { }}>Account</button>
                 </div>
                 <div class=''>
                     <For each={path()}>

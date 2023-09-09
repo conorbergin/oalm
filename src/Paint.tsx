@@ -9,10 +9,12 @@ import { yDeleteFromArray, yArraySignal, ySignal } from "./utils";
 
 import { getStroke } from 'perfect-freehand'
 import { Dialog, Modal, ModalFull } from "./Dialog";
-import { NonTextView } from "./Text";
-const average = (a, b) => (a + b) / 2
 
-function getSvgPathFromStroke(points: Array<[number, number]>) {
+
+
+const average = (a , b) => (a + b) / 2
+
+const getSvgPathFromStroke = (points: Array<[number, number]>) => {
   const len = points.length
 
   if (!len) {
@@ -35,8 +37,6 @@ function getSvgPathFromStroke(points: Array<[number, number]>) {
 
   return result
 }
-
-const useObservedArray = () => { }
 
 export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
 
@@ -206,14 +206,3 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     </>
   )
 }
-
-
-
-{/* <Show when={false}>
-<div class="absolute top-0 right-0 flex gap-1">
-
-</div>
-
-{/* <div class="absolute bottom-0 right-0">
-    <button onPointerDown={handleCanvasResize}>/</button>
-</div> */}

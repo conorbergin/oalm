@@ -278,9 +278,9 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
 
 
   return (
-    <div class='font-body'>
+    <div class='font-serif text-xl'>
 
-      <div class="editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+      <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
         <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
       </div >
       <Modal show={palette()} setShow={setPalette}>
@@ -333,22 +333,22 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
   return (
     <>
       <div ref={s} class=' section  flex flex-col pt-1' style={props.depth === 0 ? 'grid-column:2/3' : ''}>
-      <Modal show={date()} setShow={setDate}>
-        <TaskEventPicker date={taskEvent()} node={props.node} />
-      </Modal>
-      <Modal show={menu()} setShow={setMenu}>
-        <div class='flex flex-col'>
-          <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
-          <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
-          <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
-          <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
-          <button onClick={() => {setDate(true);setMenu(false)}}>date</button>
-        </div>
-      </Modal>
-        <div class='leading-none flex gap-1 font-bold text-2xl'>
+        <Modal show={date()} setShow={setDate}>
+          <TaskEventPicker date={taskEvent()} node={props.node} />
+        </Modal>
+        <Modal show={menu()} setShow={setMenu}>
+          <div class='flex flex-col'>
+            <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
+            <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
+            <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
+            <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
+            <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
+          </div>
+        </Modal>
+        <div class='leading-none flex gap-1 pb-1'>
 
           <div contentEditable={false} class='flex'>
-            <div class="text-gray-500 font-bold flex touch-none bg-gray-200 w-4" onpointerdown={handleDrag} >
+            <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
               {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
             </div>
           </div>
@@ -356,53 +356,52 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
             <Show when={taskEvent()}>
               <button contentEditable={false} class='self-start leading-none text-sm' onClick={() => setDate(true)}><TaskEventString taskEvent={taskEvent()} /></button>
             </Show>
-            <TextView node={props.node.get(TEXT)} state={props.state} tag={`p`} />
-          </div>
+            <div class='font-bold'>
+              <TextView node={props.node.get(TEXT)} state={props.state} tag={`p`} />
+            </div>
+            <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
+              <div class="flex flex-col " style='margin-left: -10px'>
+                <Show when={content().length > 0}>
+                  <div class="flex flex-col gap-1">
+                    <For each={content()}>
+                      {(item, index) =>
+                        <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => props.node.get(CONTENT).delete(index())}>delete</button>}>
+                          <Switch>
+                            <Match when={item.has('embed')}>
+                              <Embed node={item} state={props.state} />
+                            </Match>
+                            <Match when={item.has('bpm')}>
+                              <Sequencer node={item} state={props.state} />
+                            </Match>
+                            <Match when={item.has(TEXT)}>
+                              <ParagraphView node={item} state={props.state} />
+                            </Match>
+                            <Match when={item.has('paint')}>
+                              <Paint state={props.state} node={item} />
+                            </Match>
+                            <Match when={item.has('header')}>
+                              <TableView node={item} state={props.state} />
+                            </Match>
+                          </Switch>
+                        </ErrorBoundary>
 
+                      }
+                    </For>
+                  </div>
+                </Show>
+                <For each={children()}>
+                  {(item, index) => <>
 
-        </div>
-        <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
-          <div class="flex flex-col border-l " style='padding-left:2px'>
-            <Show when={content().length > 0}>
-              <div class="flex flex-col">
-                <For each={content()}>
-                  {(item, index) =>
-                    <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => props.node.get(CONTENT).delete(index())}>delete</button>}>
-                      <Switch>
-                        <Match when={item.has('list')}>
-                          <ListView node={item} state={props.state} />
-                        </Match>
-                        <Match when={item.has('embed')}>
-                          <Embed node={item} state={props.state} />
-                        </Match>
-                        <Match when={item.has('bpm')}>
-                          <Sequencer node={item} state={props.state} />
-                        </Match>
-                        <Match when={item.has(TEXT)}>
-                          <ParagraphView node={item} state={props.state} />
-                        </Match>
-                        <Match when={item.has('paint')}>
-                          <Paint state={props.state} node={item} />
-                        </Match>
-                        <Match when={item.has('header')}>
-                          <TableView node={item} state={props.state} />
-                        </Match>
-                      </Switch>
-                    </ErrorBoundary>
-
+                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} />
+                  </>
                   }
                 </For>
               </div>
             </Show>
-            <For each={children()}>
-              {(item, index) => <>
-
-                <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} />
-              </>
-              }
-            </For>
           </div>
-        </Show>
+
+
+        </div>
       </div>
     </>
   )
@@ -441,7 +440,7 @@ export const ContentContainer: Component<{ node: Y.Map<any>, state: EditorState,
         </div>
       </Modal>
       <div ref={r} class="flex gap-1 content">
-        <div contentEditable={false} class='bg-gray-200 border-white border-2 rounded-full'>
+        <div contentEditable={false} class='bg-white border rounded'>
           <div class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
             {/* <HandleIcon2 last={false} section={false} sprogs={false} /> */}
           </div>
