@@ -292,13 +292,14 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'deleteContentBackward':
+        case 'deleteWordBackward':
             if (s.node instanceof Y.Map) {
                 let o = s.node
                 if (s.node.parent.toArray.indexOf(s.node) === 0) {
                     s.node = s.node.parent?.parent?.get(TEXT)
                     s.offset = s.node.length
                 } else {
-                    s.node = s.node.parent.get(s.node.parent.toArray().indexOf(s.node)-1)
+                    s.node = s.node.parent.get(s.node.parent.toArray().indexOf(s.node) - 1)
                     s.offset = s.node.length
                 }
                 o.parent.delete(o.parent.toArray().indexOf(o))
@@ -307,6 +308,8 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'deleteContentForward':
+        case 'deleteWordForward':
+        case 'deleteContent':
             deleteContent(s)
             break
 
@@ -314,10 +317,10 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             if (s.node instanceof Y.Map) {
                 let t = new Y.Text('')
                 let m = new Y.Map()
-                m.set(TEXT,t)
+                m.set(TEXT, t)
                 let o = s.node
                 s.node = t
-                o.parent.insert(o.parent.toArray().indexOf(o)+1,[m])
+                o.parent.insert(o.parent.toArray().indexOf(o) + 1, [m])
             } else if (s.root === s.node.parent) {
                 insertParagraph(s)
             } else if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
@@ -334,7 +337,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
 
                     p.doc!.transact(() => {
                         p.get(CONTENT).delete(p.get(CONTENT).length - 1, 1)
-                        p?.parent?.parent.get(CHILDREN).insert(p.parent.parent.get(CHILDREN).toArray().indexOf(p)+1,[m])
+                        p?.parent?.parent.get(CHILDREN).insert(p.parent.parent.get(CHILDREN).toArray().indexOf(p) + 1, [m])
                     })
                 } else {
                     let [n, f] = createParagraph('')

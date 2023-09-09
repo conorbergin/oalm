@@ -93,18 +93,18 @@ export const Pernot: Component<{ doc: { id: string, secret: ArrayBuffer | null }
     return (
         <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
             <Show when={synced()}>
-                <div class='sticky top-0 border-b z-10 bg-white flex justify-between p-1 max-w-full'>
+                <div class='sticky top-0 border-b z-10 bg-white  justify-between p-1 grid grid-cols-[min-content_1fr_min-content]'>
                     <div class='flex gap-1'>
                         <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo /></button>
                         <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo /></button>
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
-                        <div class='flex overflow-auto'>
-                            <For each={path()}>
-                                {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString()} &gt;</button></Show>}
-                            </For>
-                        </div>
                     </div>
-                    <button onClick={() => { }}>Account</button>
+                    <div class='flex overflow-auto'>
+                        <For each={path()}>
+                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString() + ' >'}</button></Show>}
+                        </For>
+                    </div>
+                    <button onClick={() => { }}><Icons.Account/></button>
                 </div>
                 <div class=''>
                     <For each={path()}>

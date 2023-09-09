@@ -98,3 +98,10 @@ export const Undo:Component = () => (
 
 export const Redo:Component = () => <div style='transform: scaleX(-1)'><Undo/></div>
 
+export const Account:Component = () => (
+    <svg class='w-6 h-6' viewBox='0 0 16 16'>
+        <circle cx='8' cy='4' r='3' fill='currentColor'/>
+        <rect x='4' y='8' width={8} height={8} fill='currentColor' stroke='none'/>
+    </svg>
+)
+
