@@ -26,7 +26,7 @@ export const Dialog: Component<{ children: any, show: boolean, setShow: Setter<b
 }
 
 
-export const Modal: Component<{ children: any, show: boolean, setShow: Setter<boolean> }> = (props) => {
+export const Modal: Component<{ children: any, show: boolean, setShow: Setter<boolean>, coords: {x:number,y:number} }> = (props) => {
   let r: HTMLDialogElement
   createEffect(() => {
     if (props.show) {
@@ -36,8 +36,8 @@ export const Modal: Component<{ children: any, show: boolean, setShow: Setter<bo
     }
   })
   return (
-    <dialog contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
-      <div onClick={e => e.stopPropagation()}>
+    <dialog class='p-0 rounded mt-64' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
+      <div class='p-2' onClick={e => e.stopPropagation()}>
         {props.children}
       </div>
     </dialog>

@@ -83,14 +83,14 @@ export const Finger: Component = () => (
 )
 
 export const Exit: Component = () => (
-    <svg class="w-6 h-6" viewBox='0 0 16 16'>
+    <svg class="w-4 h-4" viewBox='0 0 16 16'>
         <path d='M 1 1 l 14 14' stroke='currentColor' stroke-width='2'/>
         <path d='M 1 15 l 14 -14' stroke='currentColor' stroke-width='2'/>
     </svg>
 )
 
 export const Undo:Component = () => (
-    <svg class='w-6 h-6' viewBox='0 0 16 16'>
+    <svg class='w-4 h-4' viewBox='0 0 16 16'>
         <path d='M 2 5 l 12 0 l 0 8 l -12 0' stroke='currentColor' fill='none' stroke-width='1'/>
         <path d='M 5 2 l -3 3 l 3 3' stroke='currentColor' fill='none' stroke-width='1'/>
     </svg>
@@ -102,6 +102,15 @@ export const Account:Component = () => (
     <svg class='w-6 h-6' viewBox='0 0 16 16'>
         <circle cx='8' cy='4' r='3' fill='currentColor'/>
         <rect x='4' y='8' width={8} height={8} fill='currentColor' stroke='none'/>
+    </svg>
+)
+
+export const Sync:Component<{color:string}> = (props) => (
+    <svg class='w-4 h-4' viewBox='0 0 16 16'>
+        <path d='M 1 4 l 14 0' stroke={props.color} fill='none' stroke-width='1'/>
+        <path d='M 1 12 l 14 0' stroke={props.color} fill='none' stroke-width='1'/>
+        <path d='M 4 1 l -3 3 l 3 3' stroke={props.color} fill='none' stroke-width='1'/>
+        <path d='M 12 9 l 3 3 l -3 3' stroke={props.color} fill='none' stroke-width='1'/>
     </svg>
 )
 

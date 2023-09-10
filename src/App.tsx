@@ -14,92 +14,89 @@ const BAD_TOKEN = 496
 
 import { Portal } from 'solid-js/web'
 import { CalendarView } from './Calendar'
-import { Pernot } from './Pernot'
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
+import { WebrtcProvider } from 'y-webrtc'
+
+import { fixer } from "./fixer";
+import { Modal } from './Dialog'
+
+import { EditorView } from "./Editor";
+import { getNotebook, putNotebook } from "./service";
+import * as Icons from './Icons'
+
+// https://stackoverflow.com/a/9204568
+const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+
+const PASSWORD_TOO_SHORT = 10
+const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
 
 export const App: Component = () => {
+    return (
+        <ErrorBoundary fallback={err => err}>
+            <AppView />
+        </ErrorBoundary>
+    )
+}
 
+export const AppView: Component = () => {
+
+    const [doc, setDoc] = createSignal({ id: 'default', secret: null })
+    const [user, setUser] = createSignal<null | User>(null)
+    const [accountModal, aetAccountModal] = createSignal(false)
 
     const [message, setMessage] = createSignal('')
-    const [login, setLogin] = createSignal(false)
-    const [user, setUser] = createSignal<null | User>(null)
+
+    const [synced, setSynced] = createSignal(false)
+    const [canUndo, setCanUndo] = createSignal(false)
+    const [canRedo, setCanRedo] = createSignal(false)
+    const [path, setPath] = createSignal([])
+    const viewStates = ['Outline', 'Calendar']
+    const [view, setView] = createSignal(0)
+
+    let ydoc = new Y.Doc()
+    let undoManager: Y.UndoManager
+    let kcdoc = new Y.Doc()
+    // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
+    let [keychain, setKeychain] = createSignal<any>(null)
+
 
     let e: HTMLInputElement
     let p: HTMLInputElement
     let c: HTMLInputElement
-
     const handleSubmit = async () => {
-
-        let user = await deriveUser(e.value, p.value)
-        console.log(user)
-        let resp = await authenticate(user)
-        if (resp.ok) {
-
-            setUser(user)
-            setLogin(true)
-        } else if (resp.status === ACCOUNT_NOT_AUTHENTICATED) {
-            p.value = ''
-            setMessage('Wrong password')
-        } else if (resp.status === ACCOUNT_NOT_VERIFIED) {
-            p.value = ''
-            setMessage('Email unverified')
+        if (!maybeValidEmail(e.value)) {
+            setMessage('Invalid Email')
+        } else if (!validPassword(p.value)) {
+            setMessage(`Password must be greater than ${PASSWORD_TOO_SHORT}`)
         } else {
-            let [kc, pub] = await createKeychain(user)
-            let r = await register(user, pub, kc)
-            setMessage('Email sent')
+            const user = await deriveUser(e.value, p.value)
+            console.log(user)
+            const resp = await authenticate(user)
+            if (resp.ok) {
+                // get the keychain
+            } else if (resp.status === ACCOUNT_NOT_AUTHENTICATED) {
+                p.value = ''
+                setMessage('Wrong password')
+            } else if (resp.status === ACCOUNT_NOT_VERIFIED) {
+                p.value = ''
+                setMessage('Email unverified')
+            } else if (resp.status === ACCOUNT_NOT_REGISTERED) {
+                let [kc, pub] = await createKeychain(user)
+                let r = await register(user, pub, kc)
+                setMessage('Email sent')
+            }
         }
-
     }
-
-    return (
-        <>
-            <ErrorBoundary fallback={err => err}>
-                {/* <Switch>
-                    <Match when={user() && login()}>
-                        <button onClick={() => { setUser(null); setLogin(false) }}>Sign Out</button>
-                        <UserView user={user()!} />
-                    </Match>
-                    <Match when={login()}> */}
-                        <Pernot doc={{ id: 'default', secret: null }} setLogin={setLogin} />
-                    {/* </Match>
-                    <Match when={true}>
-                        <div class="flex justify-center pt-12">
-                            <div class="flex flex-col gap-4 w-96" >
-                                <h1 class="text-6xl font-script text-center">Pernote</h1>
-                                <span >{message()}</span>
-                                <input class="border-b border-black p-2" ref={e} type="email" placeholder="email" />
-                                <input class="border-b border-black p-2" ref={p} type="password" placeholder="password" />
-                                <div class="flex gap-2"><input ref={c} type="checkbox" textContent="save details" />Save data locally (I own this computer)</div>
-                                <button onClick={handleSubmit}>Sign In / Register</button>
-                                <button onClick={() => { setLogin(true) }}>Continue as Guest</button>
-                            </div>
-                        </div>
-                    </Match>
-                </Switch> */}
-            </ErrorBoundary>
-        </>
-    )
-}
-
-
-export const UserView: Component<{ user: User }> = (props) => {
-
-    console.log(props.user)
-    let kcdoc = new Y.Doc()
-    let idbprov = new IndexeddbPersistence(props.user.userid, kcdoc)
-    let [keychain, setKeychain] = createSignal<any>(null)
-
-    const [doc, setDoc] = createSignal(null)
 
 
     let f = () => {
         setKeychain(Array.from(kcdoc.getMap('pernot-keychain').entries()))
-        putKeychain(props.user, kcdoc)
+        putKeychain(user()!, kcdoc)
     }
 
     createEffect(() => {
-        getKeychain(props.user).then((k) => {
+        getKeychain(user()!).then((k) => {
             if (k === undefined) throw new Error('Keychain not found')
             Y.applyUpdate(kcdoc, new Uint8Array(k))
             kcdoc.getMap('pernot-keychain').observe(f)
@@ -111,20 +108,93 @@ export const UserView: Component<{ user: User }> = (props) => {
     })
 
 
+    createEffect(() => {
+        setSynced(false)
+        ydoc.destroy()
+        ydoc = new Y.Doc()
+        let indexeddbProvider = new IndexeddbPersistence(doc().id, ydoc)
+        let webrtcProvider = new WebrtcProvider(doc().id, ydoc)
+        indexeddbProvider.whenSynced.then(() => {
+            fixer(ydoc.getMap('root'))
+            console.log(ydoc.get('root').toJSON())
+            setPath([ydoc.get('root')])
+            undoManager = new Y.UndoManager(ydoc.get('root'))
+            undoManager.on('stack-item-added', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+            undoManager.on('stack-item-popped', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+            setSynced(true)
+        })
+    })
+
     return (
-        <>
-            <Show when={keychain()} fallback="waiting for keychain ...">
-                <Show when={doc()} fallback={
-                    <div class="flex  flex-col justify-center gap-2">
-                        <For each={keychain()}>
-                            {([id, secret]: [string, ArrayBuffer]) => <button onClick={() => { setDoc({ id, secret }) }}>{id}</button>}
+        <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
+            <Show when={synced()}>
+                <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
+                    <div class='flex gap-1'>
+                        <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo /></button>
+                        <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo /></button>
+                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
+                    </div>
+                    <div class='flex overflow-auto gap-1 whitespace-nowrap '>
+                        <For each={path()}>
+                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString() + ' >'}</button></Show>}
                         </For>
                     </div>
+                    <button onClick={() => aetAccountModal(true)}><Icons.Sync color={'gray'} /></button>
+                </div>
+                <div class=''>
+                    <For each={path()}>
+                        {(item, index) => <Show when={index() === path().length - 1}>
+                            <Switch>
+                                <Match when={view() === 0}>
+                                    <EditorView node={item} setPath={setPath} path={path()} />
+                                </Match>
+                                <Match when={view() === 1}>
+                                    <CalendarView root={item} />
+                                </Match>
+                            </Switch>
+                        </Show>}
+                    </For>
+                </div>
+            </Show >
+            <Modal show={accountModal()} setShow={aetAccountModal}>
+                <Show when={user()} fallback={
+                    <div class='flex flex-col gap-2 p-1 pt-2'>
+                        <input class="p-1 border" ref={e} type="email" placeholder="email" />
+                        <input class="p-1 border" ref={p} type="password" placeholder="password" />
+                        <div class="flex gap-2"><input ref={c} type="checkbox" />Save details locally (I own this computer)</div>
+                        <button onClick={handleSubmit}>Sign In or Register</button>
+                        <div class='text-orange-700'>{message()}</div>
+                    </div>
                 }>
-                    <Pernot doc={doc()} user={props.user} />
+                    <p>{user()!.userid}</p>
+                    <button onClick={() => setUser(null)}>Sign Out</button>
+                    <Show when={keychain()} fallback="waiting for keychain ...">
+                        <Show when={doc()} fallback={
+                            <div class="flex  flex-col justify-center gap-2">
+                                <For each={keychain()}>
+                                    {([id, secret]: [string, ArrayBuffer]) => <button onClick={() => { setDoc({ id, secret }) }}>{id}</button>}
+                                </For>
+                            </div>
+                        }>
+                        </Show>
+                    </Show>
                 </Show>
-            </Show>
-        </>
+            </Modal>
+        </div>
 
     )
 }
+
+
+
+
+    // const handleKeyDown = (e: KeyboardEvent) => {
+    //     if (e.key === 'z' && e.ctrlKey) {
+    //         e.preventDefault()
+    //         console.log('undo')
+    //         undoManager.undo()
+    //     } else if (e.key === 'y' && e.ctrlKey) {
+    //         e.preventDefault()
+    //         undoManager.redo()
+    //     }
+    // }

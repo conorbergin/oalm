@@ -1,7 +1,6 @@
 /* @refresh reload */
 import { render } from 'solid-js/web';
 
-import './codemirror.css'
 import './index.css';
 import './fonts.css'
 

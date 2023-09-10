@@ -287,6 +287,9 @@ const deleteContentBackward = (s: Sel) => {
 export const beforeinputHandler = (e: InputEvent, s: Sel) => {
     e.preventDefault()
     switch (e.inputType) {
+        case 'insertLineBreak':
+            insertText(s,'\n')
+            break
         case 'insertText':
             insertText(s, e.data!)
             break

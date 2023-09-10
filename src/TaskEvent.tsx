@@ -27,53 +27,12 @@ import { CHILDREN, CONTENT } from './input'
 //   'h', 'h', 'h', 'h', 'h', 'h', 'h'
 // ]
 
-// const isoDurationString = 'PT3H30M'; // Duration
-// const isoIntervalString = '2023-07-05T12:30:00Z/2023-07-06T12:30:00Z'; // Interval
-// const isoDateTimeString = '2023-07-05T12:30:00Z'; // DateTime
 
 
 /*
-NEXT : a task of high importance with no explitit deadline
-SOON--1W a task of medium importance which will take a week to complete
-isodate--1M: a task with a deadline which will take about a month
-isodate--isodate: an event with a start and end date
-
-explict dates are a result of external requirements, vague dates are a result of internal requirements
-maybe we need two separate systems.
-A taks can have a vague date and a vague duration, its a todo item
-A task can have an explicit date and a vague duration, its a deadline -- the vague duration should be a child of the explicit date
-A task can have an explicit date and an explicit duration, its an event or appointment ( how do we represent availability? for these event?)
-
-Assignment:
-{
-  due: 28th,
-  dependancies: [
-    deliverable_A: {
-      due: 20th,
-      dependancies: [
-        Finish research 1wk,
-        clean up formatting 5hrs,
-        write conclusion 10hrs,
-    }
-}
-
-
-{ event
-  begin : 20th,
-  end: 28th,
-  dependancies: [
-
-
-}
-
-
-type : begin | end | duration | begin&end | begin&duration | duration&end
-
-begin [x] [date] next soon someday
-duration [] [yr] [month] [week] [day] [hr] []
-end [x]
 
 */
+
 export type TaskEvent = {
   begin?: {
     date?: string,

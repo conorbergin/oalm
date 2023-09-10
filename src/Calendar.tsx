@@ -6,7 +6,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { Dialog } from "./Dialog";
 import { Codemirror } from "./Codemirror";
 import { ySignal } from "./utils";
-import { DateSelector, TaskEventPicker, TaskEvent } from "./DatePicker";
+import { DateSelector, TaskEventPicker, TaskEvent } from "./TaskEvent";
 import { CHILDREN, TEXT } from "./input";
 
 const TASKEVENT = '10'

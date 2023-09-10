@@ -14,7 +14,7 @@ import { yDeleteFromArray, yArraySignal, yReplaceInArray, ySignal } from './util
 
 export const [lock, setLock] = createSignal(false)
 
-import { TASKEVENT, MaybeDT, TaskEventPicker, TaskEventString } from './DatePicker';
+import { TASKEVENT, MaybeDT, TaskEventPicker, TaskEventString } from './TaskEvent';
 import { Dialog, Modal } from './Dialog';
 import { AgendaView } from './Agenda';
 import { setContext } from 'tone';
@@ -230,9 +230,9 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
         e.preventDefault()
         addSection(s)
         break
-      case e.key === 'Enter' && e.shiftKey:
-        e.preventDefault()
-        s.node.insert(s.offset, '\n')
+      // case e.key === 'Enter' && e.shiftKey:
+      //   e.preventDefault()
+      //   s.node.insert(s.offset, '\n')
       case e.key === 'Backspace' && e.ctrlKey && e.shiftKey:
         e.preventDefault()
         // deleteSection(getSection(s.node))
