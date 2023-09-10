@@ -43,13 +43,11 @@ export const AppView: Component = () => {
 
     const [doc, setDoc] = createSignal({ id: 'default', secret: null })
     const [user, setUser] = createSignal<null | User>(null)
-    const [accountModal, aetAccountModal] = createSignal(false)
+    const [accountModal, setAccountModal] = createSignal(false)
 
     const [message, setMessage] = createSignal('')
 
     const [synced, setSynced] = createSignal(false)
-    const [canUndo, setCanUndo] = createSignal(false)
-    const [canRedo, setCanRedo] = createSignal(false)
     const [path, setPath] = createSignal([])
     const viewStates = ['Outline', 'Calendar']
     const [view, setView] = createSignal(0)
@@ -60,6 +58,12 @@ export const AppView: Component = () => {
     // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
     let [keychain, setKeychain] = createSignal<any>(null)
 
+    
+    let f = () => {
+        setKeychain(Array.from(kcdoc.getMap('pernot-keychain').entries()))
+        putKeychain(user()!, kcdoc)
+    }
+
 
     let e: HTMLInputElement
     let p: HTMLInputElement
@@ -68,13 +72,19 @@ export const AppView: Component = () => {
         if (!maybeValidEmail(e.value)) {
             setMessage('Invalid Email')
         } else if (!validPassword(p.value)) {
-            setMessage(`Password must be greater than ${PASSWORD_TOO_SHORT}`)
+            setMessage(`Password must be greater than ${PASSWORD_TOO_SHORT} characters`)
         } else {
             const user = await deriveUser(e.value, p.value)
             console.log(user)
             const resp = await authenticate(user)
             if (resp.ok) {
-                // get the keychain
+                setUser(user)
+                let k = await getKeychain(user)
+                if (k === undefined) throw new Error('Keychain not found')
+                Y.applyUpdate(kcdoc, new Uint8Array(k))
+            console.log(kcdoc.toJSON())
+                kcdoc.getMap('pernot-keychain').observe(f)
+                f()
             } else if (resp.status === ACCOUNT_NOT_AUTHENTICATED) {
                 p.value = ''
                 setMessage('Wrong password')
@@ -89,25 +99,6 @@ export const AppView: Component = () => {
         }
     }
 
-
-    let f = () => {
-        setKeychain(Array.from(kcdoc.getMap('pernot-keychain').entries()))
-        putKeychain(user()!, kcdoc)
-    }
-
-    createEffect(() => {
-        getKeychain(user()!).then((k) => {
-            if (k === undefined) throw new Error('Keychain not found')
-            Y.applyUpdate(kcdoc, new Uint8Array(k))
-            kcdoc.getMap('pernot-keychain').observe(f)
-            f()
-        })
-        onCleanup(() => {
-            kcdoc.getMap('pernot-keychain').unobserve(f)
-        })
-    })
-
-
     createEffect(() => {
         setSynced(false)
         ydoc.destroy()
@@ -119,8 +110,6 @@ export const AppView: Component = () => {
             console.log(ydoc.get('root').toJSON())
             setPath([ydoc.get('root')])
             undoManager = new Y.UndoManager(ydoc.get('root'))
-            undoManager.on('stack-item-added', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
-            undoManager.on('stack-item-popped', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
             setSynced(true)
         })
     })
@@ -130,8 +119,7 @@ export const AppView: Component = () => {
             <Show when={synced()}>
                 <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
                     <div class='flex gap-1'>
-                        <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}><Icons.Undo /></button>
-                        <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}><Icons.Redo /></button>
+                        <UndoRedo undoManager={undoManager} />
                         <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                     </div>
                     <div class='flex overflow-auto gap-1 whitespace-nowrap '>
@@ -139,14 +127,14 @@ export const AppView: Component = () => {
                             {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString() + ' >'}</button></Show>}
                         </For>
                     </div>
-                    <button onClick={() => aetAccountModal(true)}><Icons.Sync color={'gray'} /></button>
+                    <button onClick={() => setAccountModal(true)}><Icons.Sync color={'gray'} /></button>
                 </div>
                 <div class=''>
                     <For each={path()}>
                         {(item, index) => <Show when={index() === path().length - 1}>
                             <Switch>
                                 <Match when={view() === 0}>
-                                    <EditorView node={item} setPath={setPath} path={path()} />
+                                    <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
                                 </Match>
                                 <Match when={view() === 1}>
                                     <CalendarView root={item} />
@@ -156,7 +144,7 @@ export const AppView: Component = () => {
                     </For>
                 </div>
             </Show >
-            <Modal show={accountModal()} setShow={aetAccountModal}>
+            <Modal show={accountModal()} setShow={setAccountModal}>
                 <Show when={user()} fallback={
                     <div class='flex flex-col gap-2 p-1 pt-2'>
                         <input class="p-1 border" ref={e} type="email" placeholder="email" />
@@ -182,6 +170,19 @@ export const AppView: Component = () => {
             </Modal>
         </div>
 
+    )
+}
+
+export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
+    const [canUndo, setCanUndo] = createSignal(props.undoManager.canUndo())
+    const [canRedo, setCanRedo] = createSignal(props.undoManager.canRedo())
+    props.undoManager.on('stack-item-added', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
+    props.undoManager.on('stack-item-popped', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
+    return (
+        <>
+            <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
+            <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
+        </>
     )
 }
 

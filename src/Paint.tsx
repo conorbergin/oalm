@@ -9,10 +9,11 @@ import { yDeleteFromArray, yArraySignal, ySignal } from "./utils";
 
 import { getStroke } from 'perfect-freehand'
 import { Dialog, Modal, ModalFull } from "./Dialog";
+import { UndoRedo } from "./App";
 
 
 
-const average = (a , b) => (a + b) / 2
+const average = (a, b) => (a + b) / 2
 
 const getSvgPathFromStroke = (points: Array<[number, number]>) => {
   const len = points.length
@@ -38,7 +39,7 @@ const getSvgPathFromStroke = (points: Array<[number, number]>) => {
   return result
 }
 
-export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed: boolean }> = (props) => {
+export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManager: Y.UndoManager }> = (props) => {
 
 
   let s
@@ -46,6 +47,8 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
   //fixer
   if (!props.node.has('zoom')) props.node.set('zoom', 1)
   if (!props.node.has('aspect')) props.node.set('aspect', 1)
+
+  const undoManager = new Y.UndoManager(props.node)
 
   const [allowTouch, setAllowTouch] = createSignal(false)
   const [color, setColor] = createSignal('black')
@@ -156,16 +159,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
     props.state.domFromDoc.set(props.node, d)
   })
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      e.stopPropagation()
-      let p = new Y.Map()
-      p.set('!', new Y.Text(''))
-      props.node.parent.insert(props.node.parent.toArray().indexOf(props.node) + 1, [p])
-    }
-  }
-
   const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
 
   const [show, setShow] = createSignal(false)
@@ -180,25 +173,28 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, collapsed:
           </svg>
         </div>
         <ModalFull show={show()} setShow={setShow}>
-          <div class='flex flex-col p-2 gap-2 m-auto h-screen w-screen justify-between' onClick={e => e.stopPropagation()} >
-            <div class='flex justify-between'>
-              <input type="range" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
-              <input type="range" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
-
-              <button onClick={() => setShow(false)}><Icons.Exit /></button>
-            </div>
-
-            <svg viewBox={viewBox()} ref={s} class='border self-center' preserveAspectRatio='xMaxYMax meet' classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
-              <For each={data()}>
-                {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
-              </For>
-            </svg>
-            <div class='flex justify-center gap'>
-              <input type="range" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
+          <div class='flex flex-col  gap-2 m-auto h-screen w-screen justify-between' onClick={e => e.stopPropagation()} >
+            <div class='flex justify-between p-1'>
+              <UndoRedo undoManager={undoManager} />
+              <input type="number" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
               <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
               <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
+              <button onClick={() => setShow(false)}><Icons.Exit /></button>
+            </div>
+
+            <svg viewBox={viewBox()} ref={s} class='h-full' classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+              <For each={data()}>
+                {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
+              </For>
+              <rect x={viewBox().split(' ')[0]} y={viewBox().split(' ')[1]} width={viewBox().split(' ')[2]} height={viewBox().split(' ')[3]} stroke='green' stroke-width={4} fill='none'/>
+            </svg>
+            <div class='flex justify-center gap-3'>
+              Zoom:
+              <input class='w-12' type="number" step='0.1' min="0.1" max="10" value={zoom()} onInput={(e) => props.node.set('zoom', e.target.valueAsNumber)} />
+              Aspect:
+              <input class='w-12' type="number" step='0.01' min="0.65" max="1.5" value={aspect()} onInput={(e) => props.node.set('aspect', e.target.valueAsNumber)} />
             </div>
           </div>
         </ModalFull>

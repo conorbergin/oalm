@@ -199,7 +199,7 @@ const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean 
 
 
 
-export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>> }> = (props) => {
+export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>>, undoManager:Y.UndoManager }> = (props) => {
 
   let state = new EditorState(props.node)
 
@@ -281,7 +281,7 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
     <div class='font-serif text-xl'>
 
       <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
-        <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} />
+        <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} undoManager={props.undoManager} />
       </div >
       <Modal show={palette()} setShow={setPalette}>
         <div class='flex flex-col'>
@@ -295,7 +295,7 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
   )
 }
 
-export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, last: boolean }> = (props) => {
+export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, last: boolean, undoManager:Y.UndoManager }> = (props) => {
 
   let s: HTMLElement
 
@@ -377,7 +377,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                               <ParagraphView node={item} state={props.state} />
                             </Match>
                             <Match when={item.has('paint')}>
-                              <Paint state={props.state} node={item} />
+                              <Paint state={props.state} node={item} undoManager={props.undoManager} />
                             </Match>
                             <Match when={item.has('header')}>
                               <TableView node={item} state={props.state} />
@@ -392,7 +392,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 <For each={children()}>
                   {(item, index) => <>
 
-                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} />
+                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} undoManager={props.undoManager}/>
                   </>
                   }
                 </For>
