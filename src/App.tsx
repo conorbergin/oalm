@@ -1,16 +1,8 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser, getKeychain, putKeychain, hello, User, authenticate, createNotebook, register, createKeychain } from './service'
+import { deriveUser, getKeychain, putKeychain, hello, User, authenticate, createNotebook, register, createKeychain, getDoc, putDoc } from './service'
 
-const ACCOUNT_NOT_AUTHENTICATED = 490
-const ACCOUNT_NOT_VERIFIED = 491
-const ACCOUNT_NOT_REGISTERED = 492
 
-const ACCOUNT_ALREADY_REGISTERED = 493
-const ACCOUNT_ALREADY_VERIFIED = 494
-
-const MISSING_PARAMETERS = 495
-const BAD_TOKEN = 496
 
 import { Portal } from 'solid-js/web'
 import { CalendarView } from './Calendar'
@@ -41,7 +33,7 @@ export const App: Component = () => {
 
 export const AppView: Component = () => {
 
-    const [doc, setDoc] = createSignal({ id: 'default', secret: null })
+    const [doc, setDoc] = createSignal({ id: 'default', private: null, read: '', write: '' })
     const [user, setUser] = createSignal<null | User>(null)
     const [accountModal, setAccountModal] = createSignal(false)
 
@@ -56,11 +48,24 @@ export const AppView: Component = () => {
     let undoManager: Y.UndoManager
     let kcdoc = new Y.Doc()
     // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
-    let [keychain, setKeychain] = createSignal<any>(null)
+    let [keychain, setKeychain] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
 
-    
+    const syncDoc = async () => {
+        if (!doc()) {return}
+
+        let update = await getDoc(user()!,doc().id,doc().read)
+        if (update) {
+            Y.applyUpdate(ydoc,new Uint8Array(update))
+        } else {
+            console.log('not found')
+        }
+
+        putDoc(user()!,ydoc,doc().id,doc().read,doc().write)
+    } 
+
+
     let f = () => {
-        setKeychain(Array.from(kcdoc.getMap('pernot-keychain').entries()))
+        setKeychain(Array.from(kcdoc.getMap('oalm-keychain').entries()))
         putKeychain(user()!, kcdoc)
     }
 
@@ -71,32 +76,30 @@ export const AppView: Component = () => {
     const handleSubmit = async () => {
         if (!maybeValidEmail(e.value)) {
             setMessage('Invalid Email')
-        } else if (!validPassword(p.value)) {
-            setMessage(`Password must be greater than ${PASSWORD_TOO_SHORT} characters`)
-        } else {
-            const user = await deriveUser(e.value, p.value)
-            console.log(user)
-            const resp = await authenticate(user)
-            if (resp.ok) {
-                setUser(user)
-                let k = await getKeychain(user)
-                if (k === undefined) throw new Error('Keychain not found')
-                Y.applyUpdate(kcdoc, new Uint8Array(k))
-            console.log(kcdoc.toJSON())
-                kcdoc.getMap('pernot-keychain').observe(f)
-                f()
-            } else if (resp.status === ACCOUNT_NOT_AUTHENTICATED) {
-                p.value = ''
-                setMessage('Wrong password')
-            } else if (resp.status === ACCOUNT_NOT_VERIFIED) {
-                p.value = ''
-                setMessage('Email unverified')
-            } else if (resp.status === ACCOUNT_NOT_REGISTERED) {
-                let [kc, pub] = await createKeychain(user)
-                let r = await register(user, pub, kc)
-                setMessage('Email sent')
-            }
+            return
         }
+        const user = await deriveUser(e.value, p.value)
+        console.log(user)
+        const resp = await authenticate(user)
+        if (resp.status === 200) {
+            setUser(user)
+            let k = await getKeychain(user)
+            if (k === undefined) throw new Error('Keychain not found')
+            Y.applyUpdate(kcdoc, new Uint8Array(k))
+            console.log(kcdoc.getMap('oalm-keychain').toJSON())
+            setKeychain(Array.from(kcdoc.getMap('oalm-keychain').entries()))
+
+            kcdoc.getMap('oalm-keychain').observe(f)
+        } else if (resp.status === 404) {
+            console.log('registering')
+            let [kc, pub] = await createKeychain(user)
+            let r = await register(user, pub, kc)
+            setMessage(await r.text())
+        } else {
+            let t = await resp.text()
+            setMessage(t)
+        }
+
     }
 
     createEffect(() => {
@@ -104,12 +107,20 @@ export const AppView: Component = () => {
         ydoc.destroy()
         ydoc = new Y.Doc()
         let indexeddbProvider = new IndexeddbPersistence(doc().id, ydoc)
-        let webrtcProvider = new WebrtcProvider(doc().id, ydoc)
-        indexeddbProvider.whenSynced.then(() => {
-            fixer(ydoc.getMap('root'))
-            console.log(ydoc.get('root').toJSON())
-            setPath([ydoc.get('root')])
-            undoManager = new Y.UndoManager(ydoc.get('root'))
+        // let webrtcProvider = new WebrtcProvider(doc().id, ydoc)
+        indexeddbProvider.whenSynced.then(async () => {
+            if (user()) {
+                let update = await getDoc(user()!,doc().id,doc().read)
+                if (update) Y.applyUpdate(ydoc,new Uint8Array(update))
+                fixer(ydoc.getMap('oalm-root'))
+                console.log(ydoc.get('oalm-root').toJSON())
+                // putDoc(user()!,ydoc,doc().id,doc().read,doc().write)
+            } else {
+                fixer(ydoc.getMap('oalm-root'))
+                console.log(ydoc.get('oalm-root').toJSON())
+            }
+            setPath([ydoc.get('oalm-root')])
+            undoManager = new Y.UndoManager(ydoc.get('oalm-root'))
             setSynced(true)
         })
     })
@@ -120,27 +131,20 @@ export const AppView: Component = () => {
                 <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
                     <div class='flex gap-1'>
                         <UndoRedo undoManager={undoManager} />
-                        <button class="text-red-800 font-bold" onClick={() => setView(vs => (vs + 1) % viewStates.length)}>{viewStates[view()]}</button>
                     </div>
                     <div class='flex overflow-auto gap-1 whitespace-nowrap '>
                         <For each={path()}>
                             {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString() + ' >'}</button></Show>}
                         </For>
                     </div>
-                    <button onClick={() => setAccountModal(true)}><Icons.Sync color={'gray'} /></button>
+                    <button onClick={() => setAccountModal(true)}><Icons.Sync color={'black'} /></button>
                 </div>
                 <div class=''>
                     <For each={path()}>
-                        {(item, index) => <Show when={index() === path().length - 1}>
-                            <Switch>
-                                <Match when={view() === 0}>
-                                    <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
-                                </Match>
-                                <Match when={view() === 1}>
-                                    <CalendarView root={item} />
-                                </Match>
-                            </Switch>
-                        </Show>}
+                        {(item, index) =>
+                            <Show when={index() === path().length - 1}>
+                                <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
+                            </Show>}
                     </For>
                 </div>
             </Show >
@@ -157,14 +161,13 @@ export const AppView: Component = () => {
                     <p>{user()!.userid}</p>
                     <button onClick={() => setUser(null)}>Sign Out</button>
                     <Show when={keychain()} fallback="waiting for keychain ...">
-                        <Show when={doc()} fallback={
-                            <div class="flex  flex-col justify-center gap-2">
-                                <For each={keychain()}>
-                                    {([id, secret]: [string, ArrayBuffer]) => <button onClick={() => { setDoc({ id, secret }) }}>{id}</button>}
-                                </For>
-                            </div>
-                        }>
-                        </Show>
+                        <div class="flex  flex-col justify-center gap-2">
+                            <button onClick={syncDoc}>Sync</button>
+                            <For each={keychain()}>
+                                {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDoc({ id, ...value.toJSON() }) }>{id}</button>}
+                            </For>
+                            <button onClick={() => createNotebook()}>New Notebook</button>
+                        </div>
                     </Show>
                 </Show>
             </Modal>
@@ -189,13 +192,13 @@ export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
 
 
 
-    // const handleKeyDown = (e: KeyboardEvent) => {
-    //     if (e.key === 'z' && e.ctrlKey) {
-    //         e.preventDefault()
-    //         console.log('undo')
-    //         undoManager.undo()
-    //     } else if (e.key === 'y' && e.ctrlKey) {
-    //         e.preventDefault()
-    //         undoManager.redo()
-    //     }
-    // }
+// const handleKeyDown = (e: KeyboardEvent) => {
+//     if (e.key === 'z' && e.ctrlKey) {
+//         e.preventDefault()
+//         console.log('undo')
+//         undoManager.undo()
+//     } else if (e.key === 'y' && e.ctrlKey) {
+//         e.preventDefault()
+//         undoManager.redo()
+//     }
+// }

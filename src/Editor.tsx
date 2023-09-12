@@ -15,9 +15,10 @@ import { yDeleteFromArray, yArraySignal, yReplaceInArray, ySignal } from './util
 export const [lock, setLock] = createSignal(false)
 
 import { TASKEVENT, MaybeDT, TaskEventPicker, TaskEventString } from './TaskEvent';
-import { Dialog, Modal } from './Dialog';
+import { Dialog, Modal, ModalFull } from './Dialog';
 import { AgendaView } from './Agenda';
 import { setContext } from 'tone';
+import { CalendarView } from './Calendar';
 
 const PARAGRAPH_HANDLE = ':'
 const HEADING_HANDLE = '#'
@@ -302,6 +303,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
   const [menu, setMenu] = createSignal(false)
   const [date, setDate] = createSignal(false)
   const [coords, setCoords] = createSignal({ x: 0, y: 0 })
+  const [calendar,setCalendar] = createSignal(false)
 
   const taskEvent = ySignal(props.node, TASKEVENT)
 
@@ -333,8 +335,17 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
   return (
     <>
       <div ref={s} class=' section  flex flex-col pt-1' style={props.depth === 0 ? 'grid-column:2/3' : ''}>
+        <ModalFull show={calendar()} setShow={setCalendar}>
+          <div class='grid grid-cols-[min-content_1fr] h-screen w-screen'>
+            <div><button onClick={() => setCalendar(false)}>close</button></div>
+            <div class='overflow-y-auto'>
+              <CalendarView root={props.node!.doc!.getMap('oalm-root')} />
+            </div>
+          </div>
+        </ModalFull>
         <Modal show={date()} setShow={setDate}>
           <TaskEventPicker date={taskEvent()} node={props.node} />
+          <button onClick={() => setCalendar(true)}>Open Calendar</button>
         </Modal>
         <Modal show={menu()} setShow={setMenu}>
           <div class='flex flex-col'>
