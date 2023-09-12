@@ -1,6 +1,6 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser, getKeychain, putKeychain, hello, User, authenticate, createNotebook, register, createKeychain, getDoc, putDoc } from './service'
+import { deriveUser, getKeychain, putKeychain, User, authenticate, createNotebook, register, createKeychain, getDoc, putDoc } from './service'
 
 
 
