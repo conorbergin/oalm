@@ -14,7 +14,6 @@ import { fixer } from "./fixer";
 import { Modal } from './Dialog'
 
 import { EditorView } from "./Editor";
-import { getNotebook, putNotebook } from "./service";
 import * as Icons from './Icons'
 
 // https://stackoverflow.com/a/9204568
