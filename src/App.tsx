@@ -1,6 +1,6 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser, getKeychain, putKeychain, User, authenticate, createNotebook, register, createKeychain, getDoc, putDoc } from './service'
+import { deriveUser,syncKeychain, syncDoc, UserData, DocData, authenticate, createNotebook, register, createKeychain} from './service'
 
 
 
@@ -19,6 +19,8 @@ import * as Icons from './Icons'
 // https://stackoverflow.com/a/9204568
 const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
 
+const INTERVAL = 1000*20
+
 const PASSWORD_TOO_SHORT = 10
 const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
 
@@ -32,48 +34,33 @@ export const App: Component = () => {
 
 export const AppView: Component = () => {
 
-    const [doc, setDoc] = createSignal({ id: 'default', private: null, read: '', write: '' })
-    const [user, setUser] = createSignal<null | User>(null)
+    const [docData, setDocData] = createSignal<null | DocData>(null)
+    const [userData, setUserData] = createSignal<null | UserData>(null)
     const [accountModal, setAccountModal] = createSignal(false)
-
+    const [docs, setDocs] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
     const [message, setMessage] = createSignal('')
-
     const [synced, setSynced] = createSignal(false)
-    const [path, setPath] = createSignal([])
-    const viewStates = ['Outline', 'Calendar']
-    const [view, setView] = createSignal(0)
+    const [path, setPath] = createSignal<Array<Y.Map<any>>>([])
+    let persist = false
+
+    const counters = new Map()
+
+    setInterval(() => {
+        const u = userData()
+        const d = docData()
+        if (u) {syncKeychain(kcdoc,u,counters,true)}
+        if (u) {syncDoc(ydoc,d,u,counters,true)}
+    },INTERVAL)
 
     let ydoc = new Y.Doc()
     let undoManager: Y.UndoManager
     let kcdoc = new Y.Doc()
     // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
-    let [keychain, setKeychain] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
-
-    const syncKeychain = async () => {
-        const u = user()
-        if (!u) { return }
-        let update = await getKeychain(u)
-        if (!update) { return }
-        Y.applyUpdate(kcdoc, new Uint8Array(update))
-        putKeychain(u, kcdoc)
-    }
-
-    const syncDoc = async () => {
-        if (!doc()) {return}
-
-        let update = await getDoc(user()!,doc().id,doc().read)
-        if (update) {
-            Y.applyUpdate(ydoc,new Uint8Array(update))
-        } else {
-            console.log('not found')
-        }
-        putDoc(user()!,ydoc,doc().id,doc().read,doc().write)
-    } 
 
 
     let f = () => {
-        setKeychain(Array.from(kcdoc.getMap('oalm-keychain').entries()))
-        putKeychain(user()!, kcdoc)
+        setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
+        // syncKeychain(kcdoc,userData()!, counters,true)
     }
 
 
@@ -89,16 +76,13 @@ export const AppView: Component = () => {
         console.log(user)
         const resp = await authenticate(user)
         if (resp.status === 200) {
-            setUser(user)
-            let k = await getKeychain(user)
-            if (k === undefined) throw new Error('Keychain not found')
-            Y.applyUpdate(kcdoc, new Uint8Array(k))
-            console.log(kcdoc.getMap('oalm-keychain').toJSON())
-            setKeychain(Array.from(kcdoc.getMap('oalm-keychain').entries()))
-
+            setUserData(user)
+            syncKeychain(kcdoc,user,counters,false)
+            // console.log(kcdoc.getMap('oalm-keychain').toJSON())
+            setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
             kcdoc.getMap('oalm-keychain').observe(f)
         } else if (resp.status === 404) {
-            console.log('registering')
+            setMessage('Registering Account')
             let [kc, pub] = await createKeychain(user)
             let r = await register(user, pub, kc)
             setMessage(await r.text())
@@ -109,27 +93,29 @@ export const AppView: Component = () => {
 
     }
 
-    createEffect(() => {
+    createEffect(async () => {
         setSynced(false)
         ydoc.destroy()
         ydoc = new Y.Doc()
-        let indexeddbProvider = new IndexeddbPersistence(doc().id, ydoc)
-        // let webrtcProvider = new WebrtcProvider(doc().id, ydoc)
-        indexeddbProvider.whenSynced.then(async () => {
-            if (user()) {
-                let update = await getDoc(user()!,doc().id,doc().read)
-                if (update) Y.applyUpdate(ydoc,new Uint8Array(update))
-                fixer(ydoc.getMap('oalm-root'))
-                console.log(ydoc.get('oalm-root').toJSON())
-                // putDoc(user()!,ydoc,doc().id,doc().read,doc().write)
+        const d = docData()
+        if(d) {
+            if (persist) {
+                const indexeddbProvider = new IndexeddbPersistence(d.id,ydoc)
+                await indexeddbProvider.whenSynced
+                syncDoc(ydoc,d,userData()!,counters,false)
             } else {
-                fixer(ydoc.getMap('oalm-root'))
-                console.log(ydoc.get('oalm-root').toJSON())
+                await syncDoc(ydoc,d,userData()!,counters,false)
             }
-            setPath([ydoc.get('oalm-root')])
-            undoManager = new Y.UndoManager(ydoc.get('oalm-root'))
-            setSynced(true)
-        })
+            fixer(ydoc.getMap('oalm-root'))
+        } else {
+            const indexeddbProvider  = new IndexeddbPersistence('default',ydoc)
+            await indexeddbProvider.whenSynced
+        }
+        fixer(ydoc.getMap('oalm-root'))
+        setPath([ydoc.getMap('oalm-root')])
+        undoManager = new Y.UndoManager(ydoc.get('oalm-root'))
+        setSynced(true)
+        
     })
 
     return (
@@ -137,7 +123,7 @@ export const AppView: Component = () => {
             <Show when={synced()}>
                 <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
                     <div class='flex gap-1'>
-                        <UndoRedo undoManager={undoManager} />
+                        <UndoRedo undoManager={undoManager!} />
                     </div>
                     <div class='flex overflow-auto gap-1 whitespace-nowrap '>
                         <For each={path()}>
@@ -156,7 +142,7 @@ export const AppView: Component = () => {
                 </div>
             </Show >
             <Modal show={accountModal()} setShow={setAccountModal}>
-                <Show when={user()} fallback={
+                <Show when={userData()} fallback={
                     <div class='flex flex-col gap-2 p-1 pt-2'>
                         <input class="p-1 border" ref={e} type="email" placeholder="email" />
                         <input class="p-1 border" ref={p} type="password" placeholder="password" />
@@ -165,15 +151,15 @@ export const AppView: Component = () => {
                         <div class='text-orange-700'>{message()}</div>
                     </div>
                 }>
-                    <p>{user()!.userid}</p>
-                    <button onClick={() => setUser(null)}>Sign Out</button>
-                    <Show when={keychain()} fallback="waiting for keychain ...">
+                    <p>{userData()!.userid}</p>
+                    <button onClick={() => setUserData(null)}>Sign Out</button>
+                    <Show when={docs()} fallback="waiting for keychain ...">
                         <div class="flex  flex-col justify-center gap-2">
-                            <button onClick={syncDoc}>Sync</button>
-                            <For each={keychain()}>
-                                {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDoc({ id, ...value.toJSON() }) }>{id}</button>}
+                            <button onClick={() => {syncKeychain(kcdoc,userData()!,counters,true); docData() && syncDoc(ydoc,docData()!,userData()!,counters,true)}}>Sync</button>
+                            <For each={docs()}>
+                                {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() }) }>{id}</button>}
                             </For>
-                            <button onClick={() => createNotebook()}>New Notebook</button>
+                            <button onClick={() => {}}>New Notebook</button>
                         </div>
                     </Show>
                 </Show>

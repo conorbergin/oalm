@@ -26,7 +26,7 @@ export const Dialog: Component<{ children: any, show: boolean, setShow: Setter<b
 }
 
 
-export const Modal: Component<{ children: any, show: boolean, setShow: Setter<boolean>, coords: {x:number,y:number} }> = (props) => {
+export const Modal: Component<{ children: any, show: boolean, setShow: Setter<boolean>, coords?: {x:number,y:number} }> = (props) => {
   let r: HTMLDialogElement
   createEffect(() => {
     if (props.show) {

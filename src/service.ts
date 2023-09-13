@@ -4,17 +4,23 @@ import * as Y from 'yjs'
 
 import { Base64 } from 'js-base64'
 
-export type User = {
+export type UserData = {
     userid: string,
     masterKey: CryptoKey,
     masterHash: string,
 }
 
+export type DocData = {
+    id: string,
+    read: string,
+    write?: string,
+}
+
 const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
-const encrypt = async (data: ArrayBuffer, user: User) => crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
+const encrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
 
-const decrypt = async (data: ArrayBuffer, user: User) => crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
+const decrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
 
 export const deriveUser = async (userid: string, password: string) => {
     let enc = new TextEncoder()
@@ -65,7 +71,7 @@ export const deriveUser = async (userid: string, password: string) => {
     }
 }
 
-export const createKeychain = async (user: User) => {
+export const createKeychain = async (user: UserData) => {
     let doc = new Y.Doc()
     let keychain = doc.getMap('oalm-keychain')
     let keypair = doc.getMap('oalm-keypair')
@@ -117,7 +123,7 @@ export const createNotebook = async (keychain: Y.Map<any>) => {
     keychain.set(crypto.randomUUID(), m)
 }
 
-export const register = async (user: User, publicKey: ArrayBuffer, keychain: ArrayBuffer) => {
+export const register = async (user: UserData, publicKey: ArrayBuffer, keychain: ArrayBuffer) => {
     if (publicKey.byteLength != 550) {
         alert('invalid public key')
     }
@@ -129,52 +135,68 @@ export const register = async (user: User, publicKey: ArrayBuffer, keychain: Arr
     })
 }
 
-export const putDoc = async (user: User, doc: Y.Doc, id: string, read:string, write: string) => {
-    let url = `${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${id}&write=${write}&read=${read}`
-    let body = await encrypt(Y.encodeStateAsUpdate(doc), user)
-    fetch(url, {
-        method: 'POST',
-        body: body,
-    })
-}
 
-export const getDoc = async (user: User, docid: string, read: string) => {
-    let url = `${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${docid}&read=${read}`
-    let resp = await fetch(url)
-    if (!resp.ok) {
-        console.log('doc')
-        return
+
+
+
+export const syncKeychain = async (doc: Y.Doc, user: UserData, counters: Map<string, string>, modified: boolean) => {
+    const g = await fetch(`${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}&counter=${counters.get(user.userid)}`)
+    if (g.ok) {
+        const s_counter = g.headers.get('counter')
+        console.log(`counter ${counters.get(user.userid)}, server counter: ${s_counter}`)
+        await decrypt(await (await g.blob()).arrayBuffer(), user).then(u => Y.applyUpdate(doc, new Uint8Array(u))).catch(e => console.log('decryption error:' + e))
+        if (s_counter) { counters.set(user.userid, s_counter) }
+    } else {
+        console.log(await g.text())
     }
-    let data = await (await resp.blob()).arrayBuffer()
-    return decrypt(data, user)
-}
-
-export const putKeychain = async (user: User, keychain: Y.Doc) => {
-    let url = `${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}`
-    let body = await encrypt(Y.encodeStateAsUpdate(keychain), user)
-    fetch(url, {
-        method: 'POST',
-        body: body,
-    })
-}
-
-export const getKeychain = async (user: User) => {
-    let url = `${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}`
-    let resp = await fetch(url)
-    if (!resp.ok || !resp.body) {
-        console.log('no keychain')
-        return
+    if (modified) {
+        const p = await fetch(
+            `${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}`,
+            {
+                method: 'POST',
+                body: await encrypt(Y.encodeStateAsUpdate(doc), user)
+            }
+        )
+        if (p.ok) {
+            console.log('hello counter')
+            const c = counters.get(user.userid)
+            if (c) { counters.set(user.userid, `${parseInt(c) + 1}`) }
+        }
     }
-    let data = await (await resp.blob()).arrayBuffer()
-    return decrypt(data, user)
 }
 
-export const authenticate = async (user: User) => {
+export const syncDoc = async (doc: Y.Doc, meta: DocData, user: UserData, counters: Map<string, string>, modified: boolean) => {
+    const g = await fetch(`${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${meta.id}&read=${meta.read}&counter=${counters.get(meta.id)}`)
+    if (g.ok) {
+        const s_counter = g.headers.get('counter')
+        console.log(`counter ${counters.get(meta.id)}, server counter: ${s_counter}`)
+        await decrypt(await (await g.blob()).arrayBuffer(), user).then(u => Y.applyUpdate(doc, new Uint8Array(u))).catch(e => console.log('decryption error:' + e))
+        if (s_counter) { counters.set(meta.id, s_counter) }
+    } else {
+        console.log(await g.text())
+    }
+    if (modified && meta.write) {
+        const p = await fetch(
+            `${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${meta.id}&write=${meta.write}&read=${meta.read}`,
+            {
+                method: 'POST',
+                body: await encrypt(Y.encodeStateAsUpdate(doc), user)
+            }
+        )
+        if (p.ok) {
+            const c = counters.get(meta.id)
+            if (c) { counters.set(meta.id, `${parseInt(c) + 1}`) }
+        }
+    }
+}
+
+
+export const authenticate = async (user: UserData) => {
     let url = `${API_URL}/authorize?user=${user.userid}&hash=${user.masterHash}`
     return fetch(url)
 }
 
-export const inviteUser = async (user: User, inviteeId: string, notebookId: string, notebookKey: string) => {
+export const inviteUser = async (user: UserData, inviteeId: string, notebookId: string, notebookKey: string) => {
     let url = `${API_URL}/publickey?user=${user.userid}&hash=${user.masterHash}&email=${inviteeId}`
     let resp = await fetch(url)
     let body = await resp.body
@@ -227,4 +249,47 @@ export const inviteUser = async (user: User, inviteeId: string, notebookId: stri
 //         true,
 //         ["encrypt", "decrypt"]
 //     )
+// }
+
+
+
+// export const putDoc = async (user: UserData, doc: Y.Doc, id: string, read:string, write: string) => {
+//     let url = `${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${id}&write=${write}&read=${read}`
+//     let body = await encrypt(Y.encodeStateAsUpdate(doc), user)
+//     fetch(url, {
+//         method: 'POST',
+//         body: body,
+//     })
+// }
+
+// export const getDoc = async (user: UserData, docid: string, read: string) => {
+//     let url = `${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${docid}&read=${read}`
+//     let resp = await fetch(url)
+//     if (!resp.ok) {
+//         console.log('doc')
+//         return
+//     }
+//     let data = await (await resp.blob()).arrayBuffer()
+//     return decrypt(data, user)
+// }
+
+
+// export const putKeychain = async (user: User, keychain: Y.Doc) => {
+//     let url = `${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}`
+//     let body = await encrypt(Y.encodeStateAsUpdate(keychain), user)
+//     fetch(url, {
+//         method: 'POST',
+//         body: body,
+//     })
+// }
+
+// export const getKeychain = async (user: User) => {
+//     let url = `${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}`
+//     let resp = await fetch(url)
+//     if (!resp.ok || !resp.body) {
+//         console.log('no keychain')
+//         return
+//     }
+//     let data = await (await resp.blob()).arrayBuffer()
+//     return decrypt(data, user)
 // }
