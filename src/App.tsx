@@ -42,15 +42,19 @@ export const AppView: Component = () => {
     const [synced, setSynced] = createSignal(false)
     const [path, setPath] = createSignal<Array<Y.Map<any>>>([])
     let persist = false
+    let modified = false
 
     const counters = new Map()
 
-    setInterval(() => {
+    const sync = () => {
         const u = userData()
         const d = docData()
-        if (u) {syncKeychain(kcdoc,u,counters,true)}
-        if (u) {syncDoc(ydoc,d,u,counters,true)}
-    },INTERVAL)
+        if (u) {syncKeychain(kcdoc,u,counters,modified)}
+        if (d && u) {syncDoc(ydoc,d,u,counters,modified)}
+        modified = false
+    }
+
+    setInterval(sync,INTERVAL)
 
     let ydoc = new Y.Doc()
     let undoManager: Y.UndoManager
@@ -60,7 +64,7 @@ export const AppView: Component = () => {
 
     let f = () => {
         setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
-        // syncKeychain(kcdoc,userData()!, counters,true)
+        modified = true
     }
 
 
@@ -107,6 +111,7 @@ export const AppView: Component = () => {
                 await syncDoc(ydoc,d,userData()!,counters,false)
             }
             fixer(ydoc.getMap('oalm-root'))
+            ydoc.getMap('oalm-root').observeDeep(() => modified = true)
         } else {
             const indexeddbProvider  = new IndexeddbPersistence('default',ydoc)
             await indexeddbProvider.whenSynced
@@ -155,7 +160,7 @@ export const AppView: Component = () => {
                     <button onClick={() => setUserData(null)}>Sign Out</button>
                     <Show when={docs()} fallback="waiting for keychain ...">
                         <div class="flex  flex-col justify-center gap-2">
-                            <button onClick={() => {syncKeychain(kcdoc,userData()!,counters,true); docData() && syncDoc(ydoc,docData()!,userData()!,counters,true)}}>Sync</button>
+                            <button onClick={() => sync()}>Sync</button>
                             <For each={docs()}>
                                 {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() }) }>{id}</button>}
                             </For>
