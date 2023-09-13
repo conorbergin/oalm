@@ -50,7 +50,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
 
   const undoManager = new Y.UndoManager(props.node)
 
-  const [allowTouch, setAllowTouch] = createSignal(false)
   const [color, setColor] = createSignal('black')
   const [fill, setFill] = createSignal(false)
   const [strokeWidth, setStrokeWidth] = createSignal(10)
@@ -71,7 +70,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
   const handlePointerDown = (e: PointerEvent) => {
     e.stopPropagation()
     let id = e.pointerId
-    if (!allowTouch() && e.pointerType === 'touch') return
     let pressure = e.pressure ? true : false
 
     let t = s.getScreenCTM()?.inverse()
@@ -165,7 +163,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
   return (
     <>
       <ContentContainer node={props.node} state={props.state} commands={commands}>
-        <div class='flex' contentEditable={false} onClick={() => setShow(true)}>
+        <div class='flex' contentEditable={false} onClick={e => {e.stopPropagation();setShow(true)}}>
           <svg viewBox={viewBox()} ref={s} class="border w-full bg-white ">
             <For each={data()}>
               {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}

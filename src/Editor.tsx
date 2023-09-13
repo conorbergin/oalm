@@ -183,23 +183,6 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
   document.addEventListener('pointerup', handlePointerUp)
 }
 
-
-
-const HandleIcon2: Component<{ last: boolean, section: boolean, sprogs: boolean }> = (props) => {
-  return (
-    <div style='display:grid; grid-template-columns: 3px 8px 8px 3px; grid-template-rows: 0.4rem 8px 8px 1fr;height:100%'>
-      <div style='grid-column-start:1; grid-row-start:1; grid-row-end:3' classList={{ 'border-l': props.last }} class='border-b' />
-
-      <div style='grid-column-start:2;grid-row-start:2;grid-column-end:4;grid-row-end:4' class='border' classList={{ 'rounded-full': !props.section }} />
-
-      <div style='grid-column-start:3;grid-row-start:4' classList={{ 'border-l': props.sprogs }} />
-
-    </div>
-  )
-}
-
-
-
 export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>>, undoManager:Y.UndoManager }> = (props) => {
 
   let state = new EditorState(props.node)
@@ -279,7 +262,7 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
 
 
   return (
-    <div class='font-serif text-xl'>
+    <div class='font-serif text-xl p-1'>
 
       <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
         <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} undoManager={props.undoManager} />
