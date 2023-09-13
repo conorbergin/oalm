@@ -339,14 +339,14 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
             <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
           </div>
         </Modal>
-        <div class='leading-none flex gap-1 pb-1'>
+        <div class='leading-none flex gap-1 '>
 
           <div contentEditable={false} class='flex'>
             <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
               {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
             </div>
           </div>
-          <div class='flex flex-col'>
+          <div class='flex flex-col pb-1'>
             <Show when={taskEvent()}>
               <button contentEditable={false} class='self-start leading-none text-sm' onClick={() => setDate(true)}><TaskEventString taskEvent={taskEvent()} /></button>
             </Show>

@@ -49,6 +49,15 @@ export const AppView: Component = () => {
     // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
     let [keychain, setKeychain] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
 
+    const syncKeychain = async () => {
+        const u = user()
+        if (!u) { return }
+        let update = await getKeychain(u)
+        if (!update) { return }
+        Y.applyUpdate(kcdoc, new Uint8Array(update))
+        putKeychain(u, kcdoc)
+    }
+
     const syncDoc = async () => {
         if (!doc()) {return}
 
@@ -58,7 +67,6 @@ export const AppView: Component = () => {
         } else {
             console.log('not found')
         }
-
         putDoc(user()!,ydoc,doc().id,doc().read,doc().write)
     } 
 

@@ -36,7 +36,7 @@ export const Modal: Component<{ children: any, show: boolean, setShow: Setter<bo
     }
   })
   return (
-    <dialog class='p-0 rounded mt-64' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
+    <dialog class='p-0 rounded' contentEditable={false} ref={r} onClick={() => props.setShow(false)}>
       <div class='p-2' onClick={e => e.stopPropagation()}>
         {props.children}
       </div>
