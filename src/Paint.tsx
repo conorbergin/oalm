@@ -69,7 +69,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
 
 
   const handlePointerDown = (e: PointerEvent) => {
-
+    e.stopPropagation()
     let id = e.pointerId
     if (!allowTouch() && e.pointerType === 'touch') return
     let pressure = e.pressure ? true : false
@@ -178,17 +178,16 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
               <UndoRedo undoManager={undoManager} />
               <input type="number" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
               <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
-              <button classList={{ 'opacity-25': !allowTouch() }} onClick={() => setAllowTouch(a => !a)}>touch</button>
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
               <button classList={{ 'opacity-25': !erase() }} onClick={() => setErase(e => !e)}><Icons.Eraser /></button>
               <button onClick={() => setShow(false)}><Icons.Exit /></button>
             </div>
 
-            <svg viewBox={viewBox()} ref={s} class='h-full' classList={{ 'touch-none': allowTouch(), 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+            <svg viewBox={viewBox()} ref={s} class='h-full' classList={{ 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
               <For each={data()}>
                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
               </For>
-              <rect x={viewBox().split(' ')[0]} y={viewBox().split(' ')[1]} width={viewBox().split(' ')[2]} height={viewBox().split(' ')[3]} stroke='green' stroke-width={4} fill='none'/>
+              <rect x={viewBox().split(' ')[0]} y={viewBox().split(' ')[1]} width={viewBox().split(' ')[2]} height={viewBox().split(' ')[3]} stroke='green' stroke-width={4*zoom()} fill='none'/>
             </svg>
             <div class='flex justify-center gap-3'>
               Zoom:
