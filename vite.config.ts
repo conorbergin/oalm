@@ -9,13 +9,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions:{enabled:true},
       manifest: {
-        name: 'Pernot',
-        short_name: 'Pernot',
-        description: 'Persisitent Encrypted Notebooks',
+        name: 'Org à la Mode',
+        short_name: 'oalm',
+        description: 'A note-taking app with encrypted sync',
         theme_color: '#ffffff',
         icons: [
           {
-            src: './src/assets/icon.png',
+            src: './icon.png',
             sizes: '192x192',
             type: 'image/png',
           },
