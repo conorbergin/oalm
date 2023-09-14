@@ -1,8 +1,8 @@
 import * as Y from 'yjs';
 import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, onMount, on, createEffect, Accessor, ErrorBoundary, createRenderEffect } from 'solid-js';
-import { TEXT, CONTENT, CHILDREN, HEADER, ITEMS, beforeinputHandler, addSection } from './input';
+import { TEXT, CONTENT, CHILDREN, ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, beforeinputHandler, addSection } from './input';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
-import { Sequencer, newPiece } from './Sequencer';
+// import { Sequencer, newPiece } from './Sequencer';
 import { TableView, newTable } from './Table';
 import { Embed } from './Embed';
 import { ParagraphView, TextView } from './Text';
@@ -19,11 +19,6 @@ import { Dialog, Modal, ModalFull } from './Dialog';
 import { AgendaView } from './Agenda';
 import { setContext } from 'tone';
 import { CalendarView } from './Calendar';
-
-const PARAGRAPH_HANDLE = ':'
-const HEADING_HANDLE = '#'
-const TABLE_HANDLE = ':'
-const BULLET = '•'
 
 
 const newPaint = () => {
@@ -56,9 +51,6 @@ const newSection = () => {
   m.set(CHILDREN, new Y.Array())
   return m
 }
-
-
-
 
 const newEmbed = () => {
   const m = new Y.Map()
@@ -183,7 +175,7 @@ export const drag = (event: PointerEvent, node: any, editor: EditorState, klass:
   document.addEventListener('pointerup', handlePointerUp)
 }
 
-export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>>, undoManager:Y.UndoManager }> = (props) => {
+export const EditorView: Component<{ node: Y.Map<any> | Y.Doc, path: Array<Y.Map<any>>, setPath: Setter<Array<Y.Map<any>>>, undoManager: Y.UndoManager }> = (props) => {
 
   let state = new EditorState(props.node)
 
@@ -252,7 +244,6 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
 
   const handleKeyDown = (e) => {
     selectionFromDom(selection, state.docFromDom)
-    console.log(selection)
 
     keydownHandler(e, selection)
     // selectionToDom(selection, state.domFromDoc)
@@ -264,7 +255,7 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
   return (
     <div class='font-serif text-xl p-1'>
 
-      <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerDown={() => { selectionFromDom(selection, state.docFromDom) }}>
+      <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
         <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} undoManager={props.undoManager} />
       </div >
       <Modal show={palette()} setShow={setPalette}>
@@ -279,26 +270,25 @@ export const EditorView: Component<{ node: Y.Map<any>, path: Array<Y.Map<any>>, 
   )
 }
 
-export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, last: boolean, undoManager:Y.UndoManager }> = (props) => {
+export const SectionView: Component<{ node: Y.Map<any> | Y.Doc, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, last: boolean, undoManager: Y.UndoManager }> = (props) => {
 
   let s: HTMLElement
+  const isRoot = props.node instanceof Y.Doc
 
   const [menu, setMenu] = createSignal(false)
   const [date, setDate] = createSignal(false)
   const [coords, setCoords] = createSignal({ x: 0, y: 0 })
-  const [calendar,setCalendar] = createSignal(false)
+  const [calendar, setCalendar] = createSignal(false)
 
-  const taskEvent = ySignal(props.node, TASKEVENT)
+  const taskEvent = isRoot ? () => null : ySignal(props.node, TASKEVENT)
 
   onMount(() => {
-    props.state.docFromDom.set(s, props.node)
-    props.state.domFromDoc.set(props.node, s)
+    !isRoot && props.state.docFromDom.set(s, props.node)
+    !isRoot && props.state.domFromDoc.set(props.node, s)
   })
 
-  let [hidden, setHidden] = createSignal(false)
-
-  const children = yArraySignal(props.node.get(CHILDREN))
-  const content = yArraySignal(props.node.get(CONTENT))
+  const children = yArraySignal(isRoot ? props.node.getArray(ROOT_CHILDREN) : props.node.get(CHILDREN))
+  const content = yArraySignal(isRoot ? props.node.getArray(ROOT_CONTENT) : props.node.get(CONTENT))
 
   const handleDrag = (e) => {
     if (props.depth > 0) {
@@ -332,40 +322,41 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
         </Modal>
         <Modal show={menu()} setShow={setMenu}>
           <div class='flex flex-col'>
-            <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
-            <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
-            <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
-            <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
-            <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
+            <Show when={!isRoot} fallback={
+              <button onClick={() => props.node.getArray(ROOT_CHILDREN).unshift([newSection()])}>+ child</button>
+            }>
+              <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
+              <button onClick={() => props.node.parent.insert(props.node.parent.toArray().indexOf(props.node), [newSection()])} >+ sibling</button>
+              <button onClick={() => props.node.get(CHILDREN).unshift([newSection()])} >+ child</button>
+              {props.depth > 0 && <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>}
+              <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
+            </Show>
           </div>
         </Modal>
         <div class='leading-none flex gap-1 '>
 
-          <div contentEditable={false} class='flex'>
+          <div contentEditable={false} class='flex '>
             <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
               {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
             </div>
           </div>
-          <div class='flex flex-col pb-1'>
+          <div class='flex flex-col pb-1 pt-1'>
             <Show when={taskEvent()}>
               <button contentEditable={false} class='self-start leading-none text-sm' onClick={() => setDate(true)}><TaskEventString taskEvent={taskEvent()} /></button>
             </Show>
             <div class='font-bold'>
-              <TextView node={props.node.get(TEXT)} state={props.state} tag={`p`} />
+              <TextView node={isRoot ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={props.state} tag={`h${props.depth + 1}`} />
             </div>
-            <Show when={!hidden() && (children().length > 0 || content().length > 0)}>
-              <div class="flex flex-col " style='margin-left: -10px'>
+            <Show when={children().length > 0 || content().length > 0}>
+              <div class="flex flex-col pt-2" style='margin-left: -10px'>
                 <Show when={content().length > 0}>
-                  <div class="flex flex-col gap-1">
+                  <div class="flex flex-col gap-2">
                     <For each={content()}>
                       {(item, index) =>
                         <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => props.node.get(CONTENT).delete(index())}>delete</button>}>
                           <Switch>
                             <Match when={item.has('embed')}>
                               <Embed node={item} state={props.state} />
-                            </Match>
-                            <Match when={item.has('bpm')}>
-                              <Sequencer node={item} state={props.state} />
                             </Match>
                             <Match when={item.has(TEXT)}>
                               <ParagraphView node={item} state={props.state} />
@@ -386,7 +377,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 <For each={children()}>
                   {(item, index) => <>
 
-                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} undoManager={props.undoManager}/>
+                    <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} last={index() === children().length - 1} undoManager={props.undoManager} />
                   </>
                   }
                 </For>

@@ -1,6 +1,6 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser,syncKeychain, syncDoc, UserData, DocData, authenticate, createNotebook, register, createKeychain} from './service'
+import { deriveUser,syncKeychain, syncDoc, UserData, DocData, authenticate, register, createKeychain} from './service'
 
 
 
@@ -15,6 +15,7 @@ import { Modal } from './Dialog'
 
 import { EditorView } from "./Editor";
 import * as Icons from './Icons'
+import { ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, TEXT } from './input'
 
 // https://stackoverflow.com/a/9204568
 const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
@@ -40,7 +41,7 @@ export const AppView: Component = () => {
     const [docs, setDocs] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
     const [message, setMessage] = createSignal('')
     const [synced, setSynced] = createSignal(false)
-    const [path, setPath] = createSignal<Array<Y.Map<any>>>([])
+    const [path, setPath] = createSignal<Array<Y.Map<any>|Y.Doc>>([])
     let persist = false
     let modified = false
 
@@ -110,15 +111,21 @@ export const AppView: Component = () => {
             } else {
                 await syncDoc(ydoc,d,userData()!,counters,false)
             }
-            fixer(ydoc.getMap('oalm-root'))
-            ydoc.getMap('oalm-root').observeDeep(() => modified = true)
+            // fixer(ydoc.getMap('oalm-root'))
+            ydoc.getMap('01').observeDeep(() => modified = true)
+            ydoc.getMap('02').observeDeep(() => modified = true)
+            ydoc.getMap('03').observeDeep(() => modified = true)
         } else {
             const indexeddbProvider  = new IndexeddbPersistence('default',ydoc)
             await indexeddbProvider.whenSynced
         }
-        fixer(ydoc.getMap('oalm-root'))
-        setPath([ydoc.getMap('oalm-root')])
-        undoManager = new Y.UndoManager(ydoc.get('oalm-root'))
+        console.log(ydoc.getText(ROOT_TEXT).toJSON())
+        console.log(ydoc.getArray(ROOT_CONTENT).toJSON())
+        console.log(ydoc.getArray(ROOT_CHILDREN).toJSON())
+
+        // fixer(ydoc.getMap('oalm-root'))
+        setPath([ydoc])
+        undoManager = new Y.UndoManager([ydoc.getText(ROOT_TEXT),ydoc.getArray(ROOT_CONTENT),ydoc.getArray(ROOT_CHILDREN)])
         setSynced(true)
         
     })
@@ -132,7 +139,7 @@ export const AppView: Component = () => {
                     </div>
                     <div class='flex overflow-auto gap-1 whitespace-nowrap '>
                         <For each={path()}>
-                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{item.get('01').toString() + ' >'}</button></Show>}
+                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{(item instanceof Y.Doc ? item.get(ROOT_TEXT).toString() : item.get(TEXT).toString()) + ' >'}</button></Show>}
                         </For>
                     </div>
                     <button onClick={() => setAccountModal(true)}><Icons.Sync color={'black'} /></button>

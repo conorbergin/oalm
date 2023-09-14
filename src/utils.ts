@@ -59,7 +59,7 @@ export const yArraySignal = (a: Y.Array<any>): Accessor<Array<any>> => {
     return arr
 }
 
-export const ySignal = (node: Y.Map<any>, key: string): Accessor<any> => {
+export const ySignal = (node: Y.Map<any> | Y.Doc, key: string): Accessor<any> => {
     const [sig, setSig] = createSignal(node.get(key) ?? null)
     const f = () => setSig(node.get(key) ?? null)
     node.observe(f)

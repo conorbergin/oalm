@@ -1,33 +1,14 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
 import { paste } from './paste'
-import { setMsg } from './Editor'
-
 
 // paragraphs and sections
+export const ROOT_TEXT = 'oalm-01'
+export const ROOT_CONTENT = 'oalm-02'
+export const ROOT_CHILDREN = 'oalm-03'
 export const TEXT = '01'
 export const CONTENT = '02'
 export const CHILDREN = '03'
-
-// schedule
-export const BEGIN = 'b'
-export const DURATION = 'd'
-// should a date have a duration?
-export const END = 'e'
-
-// archive
-export const ARCHIVE = 'r'
-
-//tables
-export const HEADER = 'h'
-export const ITEMS = 'i'
-export const CAPTION = 'k'
-
-// images or embedded content
-export const CONTAINER = 'C' // contains several content things of the same type
-export const IMAGE = 'I'
-export const VIDEO = 'V'
-export const STEPSEQUENCER = 'S'
 
 export const createParagraph = (text: string): [Y.Map<any>, Y.Text] => {
     let f = new Y.Text(text)
@@ -47,69 +28,12 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
     return [m, f]
 }
 
-const ROOT_NODE = 'root_node'
-const SECTION_NODE = 'section_node'
-const PAINT_NODE = 'paint'
-
-const getCursorContext = (s: Sel) => {
-    if (s.node.parent === s.root) {
-        return ROOT_NODE
-    } else if ((s.node.parent as Y.Map<any>).has(CHILDREN)) {
-        return SECTION_NODE
-    } else if ((s.node.parent as Y.Map<any>).has('paint')) {
-        return PAINT_NODE
-    }
-}
-
-const replaceContent = (s: Sel, m: Y.Map<any>, t: Y.Text) => {
-    if (s.focus) return null
-    if (s.node.parent.has(CHILDREN) || !s.node.parent.has(HEADING)) return
-
-
-    let p = s.node.parent
-    let i = p.parent.toArray().indexOf(p)
-
-    s.node = t
-    s.offset = 0
-
-    p.doc!.transact(() => {
-        p.parent.delete(i, 1)
-        p.parent.insert(i, [m])
-    })
-}
-
-const insertContent = (s: Sel, m: Y.Map<any>, t: Y.Text, movetext = false) => {
-    if (s.focus) return null
-
-
-    let o = s.offset
-    let n = s.node
-    let p = s.node.parent
-
-    s.node = t
-    s.offset = 0
-
-    if (p.has(CHILDREN)) {
-        p.doc!.transact(() => {
-            movetext && n.delete(o, n.length - o)
-            p.get(CONTENT).unshift([m])
-        })
-    } else if (p.has(CONTENT) && p.get(CONTENT).length > 0) {
-        p.doc!.transact(() => {
-            movetext && n.delete(o, n.length - o)
-            p.get(CONTENT).unshift([m])
-        })
-    } else if (p.parent instanceof Y.Array) {
-        let index = p.parent.toArray().indexOf(p)
-        p.doc!.transact(() => {
-            movetext && n.delete(o, n.length - o)
-            p.parent.insert(index + 1, [m])
-        })
-    }
-
-}
-
-
+// export const createList = (text: string): [Y.Map<any>, Y.Text] => {
+//     const m = new Y.Map()
+//     const [p, c] = createParagraph('')
+//     m.set(CONTENT, Y.Array.from([p]))
+//     return [m,c]
+// }
 
 export const insertText = (s: Sel, text: string) => {
     if (s.focus) return null
@@ -118,21 +42,7 @@ export const insertText = (s: Sel, text: string) => {
         s.node.insert(s.offset - text.length, text)
         return
     }
-    // throw new Error('selection is not in a text node',s.node)
 }
-
-export const insertList = (s: Sel) => {
-    if (s.focus) return null
-    const m = new Y.Map()
-    const [p, c] = createParagraph('')
-    m.set('list', Y.Array.from([p]))
-    if (!s.node.parent.has(CHILDREN)) {
-        const p = s.node.parent
-        const i = p.parent.toArray().indexOf(p)
-        p.parent.insert(i + 1, [m])
-    }
-}
-
 
 export const getSection = (node: Y.AbstractType<any>): Y.Map<any> => {
     console.log(node.toJSON())
@@ -176,15 +86,10 @@ export const deleteNode = (node) => {
     }
 }
 
-export const insertParagraph = (s: Sel) => {
-    if (s.focus) return null
-    insertContent(s, ...createParagraph(''), true)
-}
-
-
 export const deleteContent = (s: Sel) => {
-    if (s.focus) return null
-    if (s.offset === s.node.length) {
+    if (s.focus) {
+        deleteSelection(s)
+    } else if (s.offset === s.node.length) {
         let p = s.node.parent!
 
         switch (true) {
@@ -238,7 +143,6 @@ const getLastContent = (node: Y.Map<any>): Y.Text => {
             throw new Error('invalid node', node.toJSON())
     }
 }
-const getLastLocationInNode = (node: Y.Map<any>) => { }
 
 const moveSelBackward = (s: Sel) => {
     if (s.offset === 0) {
@@ -256,31 +160,45 @@ const moveSelBackward = (s: Sel) => {
     }
 }
 
-const moveSelForward = (s: Sel) => {
-    if (s.offset === s.node.length) {
-        let arr = s.node.parent!.parent!.toArray()
-        let index = arr.indexOf(s.node.parent!)
-        if (index === arr.length - 1) {
-            s.node = s.node.parent!.parent!.parent.get(TEXT)
-            s.offset = 0
-        } else {
-            s.node = getLastContent(arr[index + 1])
-            s.offset = 0
-        }
-    } else {
-        s.offset++
-    }
-}
-
 const deleteContentBackward = (s: Sel) => {
     if (s.focus) {
-        deleteContent(s)
+        deleteSelection(s)
     } else {
         moveSelBackward(s)
         deleteContent(s)
     }
 }
 
+const deleteSelection = (s: Sel) => {
+    if (!s.focus) throw new Error('range is collapsed')
+    if (s.focus.node === s.node) {
+        const start = s.offset
+        const end = s.focus.offset
+        s.focus = null
+        s.node.delete(start, end - start)
+    } else if (!s.node.parent) {
+        //selection starts in ROOT_TEXT
+        if (!s.focus.node.parent!.parent!.parent) {
+            if (s.focus.node.parent.parent.has(CHILDREN)) {
+                //
+            } else {
+                //
+            }
+        } else {
+            
+        }
+
+    } else if (s.node.parent.parent === s.focus.node.parent!.parent) {
+        const parent_array = s.node.parent.parent as Y.Array<any>
+        const i1 = parent_array.toArray().indexOf(s.node.parent)
+        const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
+        const textafter = s.focus.node.toString().slice(s.focus.offset)
+        s.focus = null
+        s.node.delete(s.offset,s.node.length-s.offset)
+        parent_array.delete(i1+1,i2-i1)
+        s.node.insert(s.node.length,textafter)
+    }
+}
 
 /* INPUT HANDLERS */
 
@@ -288,7 +206,7 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
     e.preventDefault()
     switch (e.inputType) {
         case 'insertLineBreak':
-            insertText(s,'\n')
+            insertText(s, '\n')
             break
         case 'insertText':
             insertText(s, e.data!)
@@ -296,17 +214,6 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
 
         case 'deleteContentBackward':
         case 'deleteWordBackward':
-            if (s.node instanceof Y.Map) {
-                let o = s.node
-                if (s.node.parent.toArray.indexOf(s.node) === 0) {
-                    s.node = s.node.parent?.parent?.get(TEXT)
-                    s.offset = s.node.length
-                } else {
-                    s.node = s.node.parent.get(s.node.parent.toArray().indexOf(s.node) - 1)
-                    s.offset = s.node.length
-                }
-                o.parent.delete(o.parent.toArray().indexOf(o))
-            }
             deleteContentBackward(s)
             break
 
@@ -317,63 +224,41 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
 
         case 'insertParagraph':
-            if (s.node instanceof Y.Map) {
-                let t = new Y.Text('')
-                let m = new Y.Map()
-                m.set(TEXT, t)
-                let o = s.node
-                s.node = t
-                o.parent.insert(o.parent.toArray().indexOf(o) + 1, [m])
-            } else if (s.root === s.node.parent) {
-                insertParagraph(s)
-            } else if (s.node.length === 0 && (s.node.parent.parent.length === s.node.parent.parent.toArray().indexOf(s.node.parent) + 1)) {
-                if (s.node.parent.parent.parent.has(CHILDREN)) {
-                    let m = new Y.Map()
-                    let t = new Y.Text('')
-                    m.set(TEXT, t)
-                    m.set(CONTENT, new Y.Array())
-                    m.set(CHILDREN, new Y.Array())
-
-                    let p = s.node.parent.parent.parent
-
-                    s.node = t
-
-                    p.doc!.transact(() => {
-                        p.get(CONTENT).delete(p.get(CONTENT).length - 1, 1)
-                        p?.parent?.parent.get(CHILDREN).insert(p.parent.parent.get(CHILDREN).toArray().indexOf(p) + 1, [m])
-                    })
+            if (s.focus) { deleteSelection(s) }
+            const node = s.node
+            const offset = s.offset
+            const textafter = offset < node.length ? node.toString().slice(offset) : ''
+            const [paragraph, cursor] = createParagraph(textafter)
+            s.node = cursor
+            s.offset = 0
+            if (!node.parent) {
+                textafter && node.delete(offset, node.length)
+                node.doc?.getArray(ROOT_CONTENT).unshift([paragraph])
+            } else if (node.parent instanceof Y.Map) {
+                if (node.parent.has(CHILDREN)) {
+                    textafter && node.delete(offset, node.length)
+                    node.parent.get(CONTENT).unshift([paragraph])
+                } else if (node.parent.parent instanceof Y.Array) {
+                    let index = node.parent.parent.toArray().indexOf(node.parent)
+                    if (node.length === 0 && node.parent.parent.parent && node.parent.parent.parent !== s.root && index === node.parent.parent.length - 1) {
+                        const section = node.parent.parent.parent
+                        if (section.parent instanceof Y.Array) {
+                            const section_index = section.parent.toArray().indexOf(section)
+                            const [new_section, cursor] = createSection(textafter)
+                            s.node = cursor
+                            s.offset = 0
+                            section.parent.insert(section_index + 1, [new_section])
+                            node.parent.parent.delete(index)
+                        } else {
+                            console.log('unreachable!')
+                        }
+                    } else {
+                        textafter && node.delete(offset, node.length)
+                        node.parent.parent.insert(index + 1, [paragraph])
+                    }
                 } else {
-                    let [n, f] = createParagraph('')
-                    let p = s.node.parent
-                    let pp = p.parent.parent
-
-                    s.node = f
-                    s.offset = 0
-
-                    pp.doc.transact(() => {
-                        p.parent.delete(p.parent.toArray().indexOf(p), 1)
-                        pp.parent.insert(pp.parent.toArray().indexOf(pp) + 1, [n])
-                    })
+                    console.log('unreachable')
                 }
-
-            } else if (s.node.parent.has('name')) {
-                let newRow = new Y.Map()
-                s.node.parent.parent.parent.get('items').get(0).forEach((v, k) => {
-                    newRow.set(k, new Y.Text(''))
-                })
-                s.node.parent.parent.parent.get('items').unshift([newRow])
-
-
-            } else if (s.node.parent.parent.parent.has('items')) {
-                let index = s.node.parent.parent.toArray().indexOf(s.node.parent)
-                let newRow = new Y.Map()
-                s.node.parent.parent.get(0).forEach((v, k) => {
-                    newRow.set(k, new Y.Text(''))
-                })
-                s.node.parent.parent.insert(index + 1, [newRow])
-
-            } else {
-                insertParagraph(s)
             }
             break
         case 'insertReplacementText':

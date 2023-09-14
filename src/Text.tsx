@@ -93,6 +93,7 @@ export const TextView: Component<{ node: Y.Text, state: EditorState, tag: string
     s = node.toString()
     docFromDom.set(el, node)
     domFromDoc.set(node, el)
+    el.classList.add('oalmText')
     const update = () => { el.innerHTML = ''; el.append(...highlight3(node.toString())) }
     update()
     node.observe(update)
