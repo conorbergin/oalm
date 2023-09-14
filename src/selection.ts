@@ -19,25 +19,27 @@ export const selectionToDom = (s: Sel, viewFromState: Map<any, HTMLElement>) => 
 export const selectionFromDom = (s: Sel, stateFromView: Map<HTMLElement, any>) => {
     let selection = document.getSelection()
     if (!selection || selection.type === "none" || !selection.anchorNode) return null
-    
+
     const range = selection.getRangeAt(0);
-    const anchorNode = range.startContainer.parentElement!.closest('.oalmText')!
-    
+    const anchorNode = range.startContainer instanceof Element ? range.startContainer.closest('.oalmText') : range.startContainer.parentElement!.closest('.oalmText')
+    if (anchorNode === null) { throw new Error('Failed to find anchor node') }
+
     const preAnchorRange = range.cloneRange();
     preAnchorRange.selectNodeContents(anchorNode);
     preAnchorRange.setEnd(range.startContainer, range.startOffset);
-    
-    
+
+
 
     s.node = stateFromView.get(anchorNode as HTMLElement)
     s.offset = preAnchorRange.toString().length
     s.focus = null
 
     if (!selection.isCollapsed) {
-        const focusNode = range.endContainer.parentElement!.closest('.oalmText')!
+        const focusNode = range.endContainer instanceof Element ? range.endContainer.closest('.oalmText') : range.endContainer.parentElement!.closest('.oalmText')
+        if (focusNode === null) { throw new Error('Failed to find focus node') }
         const preFocusRange = range.cloneRange()
         preFocusRange.selectNodeContents(focusNode)
-        preFocusRange.setEnd(range.endContainer,range.endOffset)
+        preFocusRange.setEnd(range.endContainer, range.endOffset)
         s.focus = {
             node: stateFromView.get(focusNode as HTMLElement),
             offset: preFocusRange.toString().length

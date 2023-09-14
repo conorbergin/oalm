@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
 import { paste } from './paste'
+import { yDeleteFromArray } from './utils'
 
 // paragraphs and sections
 export const ROOT_TEXT = 'oalm-01'
@@ -189,14 +190,31 @@ const deleteSelection = (s: Sel) => {
         }
 
     } else if (s.node.parent.parent === s.focus.node.parent!.parent) {
-        const parent_array = s.node.parent.parent as Y.Array<any>
-        const i1 = parent_array.toArray().indexOf(s.node.parent)
-        const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
-        const textafter = s.focus.node.toString().slice(s.focus.offset)
-        s.focus = null
-        s.node.delete(s.offset,s.node.length-s.offset)
-        parent_array.delete(i1+1,i2-i1)
-        s.node.insert(s.node.length,textafter)
+        if (s.node.parent.has(CHILDREN)) {
+            const textbefore = s.node.toString().slice(0,s.offset)
+            const parent1 = s.node.parent
+            const parent2 = s.focus.node.parent
+            const index1 = parent1.parent.toArray().indexOf(parent1)
+            const index2 = parent2.parent.toArray().indexOf(parent2)
+            const focus = s.focus.node
+            const focus_offset = s.focus.offset
+            s.node = focus
+            s.offset = textbefore.length
+            s.focus = null
+            parent1.parent.delete(index1,index2-index1)
+            focus.delete(0,focus_offset)
+            focus.insert(0,textbefore)
+
+        } else {
+            const parent_array = s.node.parent.parent as Y.Array<any>
+            const i1 = parent_array.toArray().indexOf(s.node.parent)
+            const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
+            const textafter = s.focus.node.toString().slice(s.focus.offset)
+            s.focus = null
+            s.node.delete(s.offset,s.node.length-s.offset)
+            parent_array.delete(i1+1,i2-i1)
+            s.node.insert(s.node.length,textafter)
+        }
     }
 }
 
@@ -204,6 +222,8 @@ const deleteSelection = (s: Sel) => {
 
 export const beforeinputHandler = (e: InputEvent, s: Sel) => {
     e.preventDefault()
+    const doc = s.node.doc
+    if (!doc) { throw new Error('node not attacted to doc')}
     switch (e.inputType) {
         case 'insertLineBreak':
             insertText(s, '\n')
@@ -231,9 +251,9 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             const [paragraph, cursor] = createParagraph(textafter)
             s.node = cursor
             s.offset = 0
-            if (!node.parent) {
+            if (node === doc.getText(ROOT_TEXT)) {
                 textafter && node.delete(offset, node.length)
-                node.doc?.getArray(ROOT_CONTENT).unshift([paragraph])
+                doc.getArray(ROOT_CONTENT).unshift([paragraph])
             } else if (node.parent instanceof Y.Map) {
                 if (node.parent.has(CHILDREN)) {
                     textafter && node.delete(offset, node.length)
@@ -250,14 +270,15 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
                             section.parent.insert(section_index + 1, [new_section])
                             node.parent.parent.delete(index)
                         } else {
-                            console.log('unreachable!')
+                            throw new Error('unreachable')
                         }
                     } else {
                         textafter && node.delete(offset, node.length)
                         node.parent.parent.insert(index + 1, [paragraph])
                     }
                 } else {
-                    console.log('unreachable')
+                    throw new Error('unreachable')
+
                 }
             }
             break

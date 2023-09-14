@@ -311,7 +311,7 @@ export const SectionView: Component<{ node: Y.Map<any> | Y.Doc, state: EditorSta
         <ModalFull show={calendar()} setShow={setCalendar}>
           <div class='grid grid-cols-[min-content_1fr] h-screen w-screen'>
             <div><button onClick={() => setCalendar(false)}>close</button></div>
-            <div class='overflow-y-auto'>
+            <div class=''>
               <CalendarView root={props.node!.doc!.getMap('oalm-root')} />
             </div>
           </div>
@@ -333,18 +333,18 @@ export const SectionView: Component<{ node: Y.Map<any> | Y.Doc, state: EditorSta
             </Show>
           </div>
         </Modal>
-        <div class='leading-none flex gap-1 '>
+        <div class='leading-none flex gap-1'>
 
           <div contentEditable={false} class='flex '>
             <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
               {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
             </div>
           </div>
-          <div class='flex flex-col pb-1 pt-1'>
+          <div class='flex flex-col gap-1 pb-1 pt-1 w-full'>
             <Show when={taskEvent()}>
               <button contentEditable={false} class='self-start leading-none text-sm' onClick={() => setDate(true)}><TaskEventString taskEvent={taskEvent()} /></button>
             </Show>
-            <div class='font-bold'>
+            <div class='font-bold '>
               <TextView node={isRoot ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={props.state} tag={`h${props.depth + 1}`} />
             </div>
             <Show when={children().length > 0 || content().length > 0}>

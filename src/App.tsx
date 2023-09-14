@@ -27,7 +27,7 @@ const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
 
 export const App: Component = () => {
     return (
-        <ErrorBoundary fallback={err => err}>
+        <ErrorBoundary fallback={e => <div>Fatal Error: + {e}</div>}>
             <AppView />
         </ErrorBoundary>
     )
