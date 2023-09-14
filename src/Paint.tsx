@@ -181,7 +181,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
               <button onClick={() => setShow(false)}><Icons.Exit /></button>
             </div>
 
-            <svg viewBox={viewBox()} ref={s} class='h-full' classList={{ 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
+            <svg viewBox={viewBox()} ref={s} class='h-full touch-none' classList={{ 'border-black': !locked() }} onpointerdown={(e) => erase() ? getObjectUnderCursor(e) : handlePointerDown(e)}>
               <For each={data()}>
                 {(item, index) => <path id={index().toString()} d={getSvgPathFromStroke(getStroke(item.points, { size: item.size, simulatePressure: item.points[0][2] === 0.5 }))} fill={item.color} />}
               </For>
