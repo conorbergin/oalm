@@ -33,7 +33,7 @@ const extractDate = (node: Y.Map<any>) => {
 }
 
 
-export const CalendarView: Component<{ root: Y.Map<any> }> = (props) => {
+export const CalendarView: Component<{ doc: Y.Doc }> = (props) => {
     const N_WEEKS = 40
     const N_WEEKS_PAST = 10
     const currentYear = Temporal.Now.plainDateISO().year

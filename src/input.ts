@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
-import { yDeleteFromArray } from './utils'
+import { yDeleteFromArray, yIndex } from './utils'
 
 // paragraphs and sections
 export const ROOT_TEXT = 'oalm-01'
@@ -45,11 +45,11 @@ export const insertText = (s: Sel, text: string) => {
         s.node.doc!.transact(() => {
             const textafter = s.node.toString().slice(s.offset)
             const ll = lines.pop()
-            lines.push(ll+textafter)
+            lines.push(ll + textafter)
             const ylines = lines.slice(1).map(l => new Y.Text(l))
             // console.log(ylines)
-            s.node.delete(s.offset,s.node.length - s.offset)
-            s.node.insert(s.offset,lines[0])
+            s.node.delete(s.offset, s.node.length - s.offset)
+            s.node.insert(s.offset, lines[0])
             if (!s.node.parent) {
                 s.node.doc?.getArray(ROOT_CHILDREN).unshift(ylines)
             } else if (s.node.parent instanceof Y.Map) {
@@ -60,7 +60,7 @@ export const insertText = (s: Sel, text: string) => {
                 }
             } else if (s.node.parent instanceof Y.Array) {
                 const index = s.node.parent.toArray().indexOf(s.node)
-                s.node.parent.insert(index+1,ylines)
+                s.node.parent.insert(index + 1, ylines)
             }
         })
     }
@@ -213,16 +213,21 @@ const deleteContentBackward = (s: Sel) => {
 
 const deleteSelection = (s: Sel) => {
     if (!s.focus) throw new Error('range is collapsed')
+    const anchor = s.node
+    const a_offset = s.offset
+    const focus = s.focus.node
+    const f_offset = s.focus.offset
+    const textbefore = anchor.toString().slice(0,a_offset)
+    const textafter = focus.toString().slice(f_offset)
     if (s.focus.node === s.node) {
-        const start = s.offset
-        const end = s.focus.offset
         s.focus = null
-        s.node.delete(start, end - start)
+        s.node.delete(a_offset, f_offset - a_offset)
     } else if (!s.node.parent) {
         //selection starts in ROOT_TEXT
-        if (!s.focus.node.parent!.parent!.parent) {
-            if (s.focus.node.parent.parent.has(CHILDREN)) {
-                //
+        if (!focus.parent!.parent) {
+            if (focus.parent instanceof Y.Array) {
+                const index = focus.parent.toArray().indexOf(focus)
+                
             } else {
                 //
             }
@@ -230,39 +235,40 @@ const deleteSelection = (s: Sel) => {
 
         }
 
-    } else if (s.node.parent.parent === s.focus.node.parent!.parent) {
-        if (s.node.parent.has(CHILDREN)) {
-            const textbefore = s.node.toString().slice(0, s.offset)
-            const parent1 = s.node.parent
-            const parent2 = s.focus.node.parent
-            const index1 = parent1.parent.toArray().indexOf(parent1)
-            const index2 = parent2.parent.toArray().indexOf(parent2)
-            const focus = s.focus.node
-            const focus_offset = s.focus.offset
-            s.node = focus
-            s.offset = textbefore.length
-            s.focus = null
-            parent1.parent.delete(index1, index2 - index1)
-            focus.delete(0, focus_offset)
-            focus.insert(0, textbefore)
+    } else if (s.node.parent === s.focus.node.parent && s.node instanceof Y.Array) {
 
-        } else {
-            const parent_array = s.node.parent.parent as Y.Array<any>
-            const i1 = parent_array.toArray().indexOf(s.node.parent)
-            const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
-            const textafter = s.focus.node.toString().slice(s.focus.offset)
-            s.focus = null
-            s.node.delete(s.offset, s.node.length - s.offset)
-            parent_array.delete(i1 + 1, i2 - i1)
-            s.node.insert(s.node.length, textafter)
-        }
+        // if (s.node.parent.has(CHILDREN)) {
+        //     const textbefore = s.node.toString().slice(0, s.offset)
+        //     const parent1 = s.node.parent
+        //     const parent2 = s.focus.node.parent
+        //     const index1 = parent1.parent.toArray().indexOf(parent1)
+        //     const index2 = parent2.parent.toArray().indexOf(parent2)
+        //     const focus = s.focus.node
+        //     const focus_offset = s.focus.offset
+        //     s.node = focus
+        //     s.offset = textbefore.length
+        //     s.focus = null
+        //     parent1.parent.delete(index1, index2 - index1)
+        //     focus.delete(0, focus_offset)
+        //     focus.insert(0, textbefore)
+
+        // } else {
+        //     const parent_array = s.node.parent.parent as Y.Array<any>
+        //     const i1 = parent_array.toArray().indexOf(s.node.parent)
+        //     const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
+        //     const textafter = s.focus.node.toString().slice(s.focus.offset)
+        //     s.focus = null
+        //     s.node.delete(s.offset, s.node.length - s.offset)
+        //     parent_array.delete(i1 + 1, i2 - i1)
+        //     s.node.insert(s.node.length, textafter)
+        // }
     }
 }
 
 const split = (s: Sel) => {
     const node = s.node
     const offset = s.offset
-    if (!node.doc) { throw new Error('selection node not in doc')}
+    if (!node.doc) { throw new Error('selection node not in doc') }
     if (s.focus) { deleteSelection(s) }
     const paragraph = new Y.Text(node.toString().slice(offset))
     s.node = paragraph
@@ -283,10 +289,10 @@ const split = (s: Sel) => {
             if (node.parent.parent instanceof Y.Map && node.parent.parent.parent instanceof Y.Array) {
                 let parent_index = node.parent.parent.parent.toArray().indexOf(node.parent.parent)
                 if (node.parent.parent.has(CHILDREN)) {
-                    const [section,location] = createSection(paragraph.toString())
+                    const [section, location] = createSection(paragraph.toString())
                     s.node = location
                     s.offset = 0
-                    node.parent.parent.parent.insert(parent_index,[section])
+                    node.parent.parent.parent.insert(parent_index, [section])
                 } else {
                     // list 
 
@@ -295,8 +301,8 @@ const split = (s: Sel) => {
         } else {
             s.node = paragraph
             s.offset = 0
-            node.delete(offset,node.length-offset)
-            node.parent.insert(index + 1,[paragraph])
+            node.delete(offset, node.length - offset)
+            node.parent.insert(index + 1, [paragraph])
         }
     }
 

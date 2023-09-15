@@ -11,7 +11,11 @@ import { getStroke } from 'perfect-freehand'
 import { Dialog, Modal, ModalFull } from "./Dialog";
 import { UndoRedo } from "./App";
 
-
+export const createPaint = () => {
+  const m = new Y.Map()
+  m.set('paint',new Y.Array())
+  return m
+}
 
 const average = (a, b) => (a + b) / 2
 
@@ -157,12 +161,9 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
     props.state.domFromDoc.set(props.node, d)
   })
 
-  const commands = [{ name: 'delete', run: () => yDeleteFromArray(props.node) }]
-
   const [show, setShow] = createSignal(false)
   return (
     <>
-      <ContentContainer node={props.node} state={props.state} commands={commands}>
         <div class='flex' contentEditable={false} onClick={e => {e.stopPropagation();setShow(true)}}>
           <svg viewBox={viewBox()} ref={s} class="border w-full bg-white ">
             <For each={data()}>
@@ -195,7 +196,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
             </div>
           </div>
         </ModalFull>
-      </ContentContainer>
     </>
   )
 }

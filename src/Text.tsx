@@ -35,12 +35,6 @@ const buildElement = (s:string) => {
 
 
 export const highlight3 = (s: string) => {
-
-    if (s === '') return [document.createElement('br')]
-    let r: Array<string | Node> = []
-    let i = 0
-    let b = 0
-
     const openers = '*_`['
     const matchOpener = (s:string) => {
         switch (s) {
@@ -50,6 +44,23 @@ export const highlight3 = (s: string) => {
             case '[': return ']'
         }
     }
+
+
+    if (s === '') return [document.createElement('br')]
+    let r: Array<string | Node> = []
+    let i = 0
+    let b = 0
+
+    if ((s[0] === '_' || s[0] === 'x') && s[1] === ' ') {
+        if (s[0] === '_') {
+            r.push(Object.assign(document.createElement('span'),{textContent:'☐',className:'unchecked'}))
+        } else {
+            r.push(Object.assign(document.createElement('span'),{textContent:'☒',className:'checked'}))
+        }
+        i++
+        b++
+    }
+
 
     while (i < s.length) {
         if (openers.includes(s[i]) && (i == 0 || isWhitespace(s[i - 1]))) {
@@ -104,60 +115,7 @@ export const TextView: Component<{ node: Y.Text, state: EditorState, tag: string
     return el
 }
 
-export const NonTextView:Component<{node: Y.Map<any>,state:EditorState}> = (props) => {
-
-    const el = document.createElement('p')
-    el.innerHTML = '<br/>'
-    props.state.docFromDom.set(el,props.node)
-    props.state.domFromDoc.set(props.node,el)
-    return el
-}
-
-export const NumberView: Component<{node: Y.Map<any>, key:string}> = (props) => {
-
-    return (
-        <input></input>
-    )
-}
-
-
-export const TextView2: Component<{ node: Y.Text, tag: string }> = (props) => {
-
-    let el = document.createElement(props.tag)
-    let br = props.tag === 'span' ? false : true
-    el.contentEditable = 'true'
-
-
-
-    let node = props.node
-    el.onbeforeinput = (e) => {
-        node.insert(0, e.data)
-    }
-    let update = () => { el.innerHTML = node.toString() || '' }
-    update()
-    node.observe(update)
-
-    onCleanup(() => {
-        node && node.unobserve(update)
-    })
-    return el
-}
-
-
 export const ParagraphView = (props) => {
-
-    const commands = [
-        { name: 'delete', run: () => yDeleteFromArray(props.node) }
-    ]
-
-    return (
-        <ContentContainer commands={commands} state={props.state} node={props.node}>
-            <TextView node={props.node.get(TEXT)} state={props.state} tag='p' />
-        </ContentContainer>
-    )
-}
-
-export const ParagraphView2 = (props) => {
 
     const commands = [
         { name: 'delete', run: () => yDeleteFromArray(props.node) }

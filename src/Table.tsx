@@ -114,13 +114,7 @@ export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (p
     let header = yArraySignal(props.node.get('header'))
     let rows = yArraySignal(props.node.get('items'))
 
-    const commands = [
-        { name: 'delete', run: () => yDeleteFromArray(props.node) },
-        { name: '+ row', run: () => addRow(props.node) },
-        { name: '+ col', run: () => addColumn(props.node) }
-    ]
     return (
-        <ContentContainer node={props.node} state={props.state} commands={commands} >
             <div class='overflow-x-auto'>
                 <div class="grid w-64 h-fit" style={{ "grid-template-columns": `repeat(${header().length}, minmax(5rem,max-content))`, }}>
                     <For each={header()}>
@@ -139,6 +133,5 @@ export const TableView: Component<{ node: Y.Map<any>, state: EditorState }> = (p
                     </For>
                 </div>
             </div>
-        </ContentContainer>
     )
 }

@@ -26,3 +26,12 @@ a {
 }
 
 code { background-color: bisque; font-family: 'InputMono'}
+
+.checked {
+    color: green
+}
+
+.unchecked {
+
+    color: darkred;
+}

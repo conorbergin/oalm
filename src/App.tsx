@@ -1,6 +1,6 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser,syncKeychain, syncDoc, UserData, DocData, authenticate, register, createKeychain} from './service'
+import { deriveUser, syncKeychain, syncDoc, UserData, DocData, authenticate, register, createKeychain } from './service'
 
 
 
@@ -20,7 +20,7 @@ import { ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, TEXT } from './input'
 // https://stackoverflow.com/a/9204568
 const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
 
-const INTERVAL = 1000*20
+const INTERVAL = 1000 * 20
 
 const PASSWORD_TOO_SHORT = 10
 const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
@@ -35,31 +35,30 @@ export const App: Component = () => {
 
 export const AppView: Component = () => {
 
+    let ydoc = new Y.Doc()
+    let kcdoc = new Y.Doc()
+    let persist = false
+    let modified = false
+    const counters = new Map()
+
     const [docData, setDocData] = createSignal<null | DocData>(null)
     const [userData, setUserData] = createSignal<null | UserData>(null)
     const [accountModal, setAccountModal] = createSignal(false)
     const [docs, setDocs] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
     const [message, setMessage] = createSignal('')
     const [synced, setSynced] = createSignal(false)
-    const [path, setPath] = createSignal<Array<Y.Map<any>|Y.Doc>>([])
-    let persist = false
-    let modified = false
-
-    const counters = new Map()
+    const [path, setPath] = createSignal([])
 
     const sync = () => {
         const u = userData()
         const d = docData()
-        if (u) {syncKeychain(kcdoc,u,counters,modified)}
-        if (d && u) {syncDoc(ydoc,d,u,counters,modified)}
+        if (u) { syncKeychain(kcdoc, u, counters, modified) }
+        if (d && u) { syncDoc(ydoc, d, u, counters, modified) }
         modified = false
     }
 
-    setInterval(sync,INTERVAL)
+    setInterval(sync, INTERVAL)
 
-    let ydoc = new Y.Doc()
-    let undoManager: Y.UndoManager
-    let kcdoc = new Y.Doc()
     // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
 
 
@@ -82,7 +81,7 @@ export const AppView: Component = () => {
         const resp = await authenticate(user)
         if (resp.status === 200) {
             setUserData(user)
-            syncKeychain(kcdoc,user,counters,false)
+            syncKeychain(kcdoc, user, counters, false)
             // console.log(kcdoc.getMap('oalm-keychain').toJSON())
             setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
             kcdoc.getMap('oalm-keychain').observe(f)
@@ -103,56 +102,36 @@ export const AppView: Component = () => {
         ydoc.destroy()
         ydoc = new Y.Doc()
         const d = docData()
-        if(d) {
+        if (d) {
             if (persist) {
-                const indexeddbProvider = new IndexeddbPersistence(d.id,ydoc)
+                const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
                 await indexeddbProvider.whenSynced
-                syncDoc(ydoc,d,userData()!,counters,false)
+                syncDoc(ydoc, d, userData()!, counters, false)
             } else {
-                await syncDoc(ydoc,d,userData()!,counters,false)
+                await syncDoc(ydoc, d, userData()!, counters, false)
             }
-            // fixer(ydoc.getMap('oalm-root'))
             ydoc.getMap('01').observeDeep(() => modified = true)
             ydoc.getMap('02').observeDeep(() => modified = true)
             ydoc.getMap('03').observeDeep(() => modified = true)
         } else {
-            const indexeddbProvider  = new IndexeddbPersistence('default',ydoc)
+            const indexeddbProvider = new IndexeddbPersistence('default', ydoc)
             await indexeddbProvider.whenSynced
         }
+        console.log(ydoc.toJSON())
         console.log(ydoc.getText(ROOT_TEXT).toJSON())
         console.log(ydoc.getArray(ROOT_CONTENT).toJSON())
         console.log(ydoc.getArray(ROOT_CHILDREN).toJSON())
-
-        // fixer(ydoc.getMap('oalm-root'))
         setPath([ydoc])
-        undoManager = new Y.UndoManager([ydoc.getText(ROOT_TEXT),ydoc.getArray(ROOT_CONTENT),ydoc.getArray(ROOT_CHILDREN)])
+
         setSynced(true)
-        
+
     })
 
     return (
-        <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
-            <Show when={synced()}>
-                <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
-                    <div class='flex gap-1'>
-                        <UndoRedo undoManager={undoManager!} />
-                    </div>
-                    <div class='flex overflow-auto gap-1 whitespace-nowrap '>
-                        <For each={path()}>
-                            {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{(item instanceof Y.Doc ? item.get(ROOT_TEXT).toString() : item.get(TEXT).toString()) + ' >'}</button></Show>}
-                        </For>
-                    </div>
-                    <button onClick={() => setAccountModal(true)}><Icons.Sync color={'black'} /></button>
-                </div>
-                <div class=''>
-                    <For each={path()}>
-                        {(item, index) =>
-                            <Show when={index() === path().length - 1}>
-                                <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
-                            </Show>}
-                    </For>
-                </div>
-            </Show >
+        <Show when={synced()} fallback={<p>loading ...</p>}>
+            <For each={path()}>
+                {(item,index) => <Show when={index() === path().length - 1}><EditorView node={item} path={path()} setPath={setPath} setAccountView={setAccountModal}/></Show> }
+            </For>
             <Modal show={accountModal()} setShow={setAccountModal}>
                 <Show when={userData()} fallback={
                     <div class='flex flex-col gap-2 p-1 pt-2'>
@@ -169,14 +148,14 @@ export const AppView: Component = () => {
                         <div class="flex  flex-col justify-center gap-2">
                             <button onClick={() => sync()}>Sync</button>
                             <For each={docs()}>
-                                {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() }) }>{id}</button>}
+                                {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() })}>{id}</button>}
                             </For>
-                            <button onClick={() => {}}>New Notebook</button>
+                            <button onClick={() => { }}>New Notebook</button>
                         </div>
                     </Show>
                 </Show>
             </Modal>
-        </div>
+        </Show>
 
     )
 }
@@ -207,3 +186,27 @@ export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
 //         undoManager.redo()
 //     }
 // }
+
+
+// <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
+//     <Show when={synced()}>
+//         <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
+//             <div class='flex gap-1'>
+//                 <UndoRedo undoManager={undoManager!} />
+//             </div>
+//             <div class='flex overflow-auto gap-1 whitespace-nowrap '>
+//                 <For each={path()}>
+//                     {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{(item instanceof Y.Doc ? item.get(ROOT_TEXT).toString() : item.get(TEXT).toString()) + ' >'}</button></Show>}
+//                 </For>
+//             </div>
+//             <button onClick={() => setAccountModal(true)}><Icons.Sync color={'black'} /></button>
+//         </div>
+//         <div class=''>
+//             <For each={path()}>
+//                 {(item, index) =>
+//                     <Show when={index() === path().length - 1}>
+//                         <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
+//                     </Show>}
+//             </For>
+//         </div>
+//     </Show >
