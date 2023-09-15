@@ -52,13 +52,15 @@ export const insertText = (s: Sel, text: string) => {
             s.node.insert(s.offset,lines[0])
             if (!s.node.parent) {
                 s.node.doc?.getArray(ROOT_CHILDREN).unshift(ylines)
-            } else if (s.node.parent.parent instanceof Y.Array) {
+            } else if (s.node.parent instanceof Y.Map) {
                 if (s.node.parent.has(CHILDREN)) {
                     s.node.parent.get(CONTENT).unshift(ylines)
                 } else {
-                    const index = s.node.parent.parent.toArray().indexOf(s.node.parent)
-                    s.node.parent.parent.insert(index+1,ylines)
+                    // list
                 }
+            } else if (s.node.parent instanceof Y.Array) {
+                const index = s.node.parent.toArray().indexOf(s.node)
+                s.node.parent.insert(index+1,ylines)
             }
         })
     }
@@ -258,46 +260,43 @@ const deleteSelection = (s: Sel) => {
 }
 
 const split = (s: Sel) => {
-    if (!s.node.doc) { throw new Error('selection node not in doc')}
-    if (s.focus) { deleteSelection(s) }
     const node = s.node
     const offset = s.offset
-    const textafter = offset < node.length ? node.toString().slice(offset) : ''
-    const [paragraph, cursor] = createParagraph(textafter)
-    s.node = cursor
+    if (!node.doc) { throw new Error('selection node not in doc')}
+    if (s.focus) { deleteSelection(s) }
+    const paragraph = new Y.Text(node.toString().slice(offset))
+    s.node = paragraph
     s.offset = 0
     if (!node.parent) {
         // root heading
-        textafter && node.delete(offset, node.length)
-        node.doc!.getArray(ROOT_CONTENT).unshift([paragraph])
+        node.delete(offset, node.length - offset)
+        node.doc.getArray(ROOT_CONTENT).unshift([paragraph])
     } else if (node.parent instanceof Y.Map) {
         if (node.parent.has(CHILDREN)) {
             // heading
-            textafter && node.delete(offset, node.length)
+            node.delete(offset, node.length - offset)
             node.parent.get(CONTENT).unshift([paragraph])
-        } else if (node.parent.parent instanceof Y.Array) {
-            // content
-            let index = node.parent.parent.toArray().indexOf(node.parent)
-            if (node.length === 0 && node.parent.parent.parent && node.parent.parent.parent !== s.root && index === node.parent.parent.length - 1) {
-                // on last empty line of content
-                const section = node.parent.parent.parent
-                if (section.parent instanceof Y.Array) {
-                    const section_index = section.parent.toArray().indexOf(section)
-                    const [new_section, cursor] = createSection(textafter)
-                    s.node = cursor
+        }
+    } else if (node.parent instanceof Y.Array) {
+        const index = node.parent.toArray().indexOf(node)
+        if (node.length === 0 && node.parent.parent !== s.root && node.parent.length - 1 === index) {
+            if (node.parent.parent instanceof Y.Map && node.parent.parent.parent instanceof Y.Array) {
+                let parent_index = node.parent.parent.parent.toArray().indexOf(node.parent.parent)
+                if (node.parent.parent.has(CHILDREN)) {
+                    const [section,location] = createSection(paragraph.toString())
+                    s.node = location
                     s.offset = 0
-                    section.parent.insert(section_index + 1, [new_section])
-                    node.parent.parent.delete(index)
+                    node.parent.parent.parent.insert(parent_index,[section])
                 } else {
-                    throw new Error('unreachable')
+                    // list 
+
                 }
-            } else {
-                textafter && node.delete(offset, node.length)
-                node.parent.parent.insert(index + 1, [paragraph])
             }
         } else {
-            throw new Error('unreachable')
-
+            s.node = paragraph
+            s.offset = 0
+            node.delete(offset,node.length-offset)
+            node.parent.insert(index + 1,[paragraph])
         }
     }
 
