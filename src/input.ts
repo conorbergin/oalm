@@ -1,6 +1,5 @@
 import * as Y from 'yjs'
 import { Sel } from './selection'
-import { paste } from './paste'
 import { yDeleteFromArray } from './utils'
 
 // paragraphs and sections
@@ -38,10 +37,30 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
 
 export const insertText = (s: Sel, text: string) => {
     if (s.focus) { deleteSelection(s) }
-    if (s.node instanceof Y.Text) {
+    const lines = text.split('\n')
+    if (lines.length === 1) {
         s.offset += text.length
         s.node.insert(s.offset - text.length, text)
-        return
+    } else {
+        s.node.doc!.transact(() => {
+            const textafter = s.node.toString().slice(s.offset)
+            const ll = lines.pop()
+            lines.push(ll+textafter)
+            const ylines = lines.slice(1).map(l => new Y.Text(l))
+            // console.log(ylines)
+            s.node.delete(s.offset,s.node.length - s.offset)
+            s.node.insert(s.offset,lines[0])
+            if (!s.node.parent) {
+                s.node.doc?.getArray(ROOT_CHILDREN).unshift(ylines)
+            } else if (s.node.parent.parent instanceof Y.Array) {
+                if (s.node.parent.has(CHILDREN)) {
+                    s.node.parent.get(CONTENT).unshift(ylines)
+                } else {
+                    const index = s.node.parent.parent.toArray().indexOf(s.node.parent)
+                    s.node.parent.parent.insert(index+1,ylines)
+                }
+            }
+        })
     }
 }
 
@@ -145,6 +164,26 @@ const getLastContent = (node: Y.Map<any>): Y.Text => {
     }
 }
 
+const expandSelBackwards = (s: Sel) => {
+    if (s.offset === 0) {
+        if (s.node === s.node.doc!.getText(ROOT_TEXT)) { return }
+        if (s.node.parent instanceof Y.Map && s.node.parent.parent instanceof Y.Array) {
+            if (s.node.parent.has(CHILDREN)) {
+
+            } else {
+
+            }
+
+        }
+
+    } else {
+        if (!s.focus) {
+            s.focus = { node: s.node, offset: s.offset }
+        }
+        s.offset--
+    }
+}
+
 const moveSelBackward = (s: Sel) => {
     if (s.offset === 0) {
         let arr = s.node.parent!.parent!.toArray()
@@ -186,12 +225,12 @@ const deleteSelection = (s: Sel) => {
                 //
             }
         } else {
-            
+
         }
 
     } else if (s.node.parent.parent === s.focus.node.parent!.parent) {
         if (s.node.parent.has(CHILDREN)) {
-            const textbefore = s.node.toString().slice(0,s.offset)
+            const textbefore = s.node.toString().slice(0, s.offset)
             const parent1 = s.node.parent
             const parent2 = s.focus.node.parent
             const index1 = parent1.parent.toArray().indexOf(parent1)
@@ -201,9 +240,9 @@ const deleteSelection = (s: Sel) => {
             s.node = focus
             s.offset = textbefore.length
             s.focus = null
-            parent1.parent.delete(index1,index2-index1)
-            focus.delete(0,focus_offset)
-            focus.insert(0,textbefore)
+            parent1.parent.delete(index1, index2 - index1)
+            focus.delete(0, focus_offset)
+            focus.insert(0, textbefore)
 
         } else {
             const parent_array = s.node.parent.parent as Y.Array<any>
@@ -211,11 +250,83 @@ const deleteSelection = (s: Sel) => {
             const i2 = parent_array.toArray().indexOf(s.focus.node.parent)
             const textafter = s.focus.node.toString().slice(s.focus.offset)
             s.focus = null
-            s.node.delete(s.offset,s.node.length-s.offset)
-            parent_array.delete(i1+1,i2-i1)
-            s.node.insert(s.node.length,textafter)
+            s.node.delete(s.offset, s.node.length - s.offset)
+            parent_array.delete(i1 + 1, i2 - i1)
+            s.node.insert(s.node.length, textafter)
         }
     }
+}
+
+const split = (s: Sel) => {
+    if (!s.node.doc) { throw new Error('selection node not in doc')}
+    if (s.focus) { deleteSelection(s) }
+    const node = s.node
+    const offset = s.offset
+    const textafter = offset < node.length ? node.toString().slice(offset) : ''
+    const [paragraph, cursor] = createParagraph(textafter)
+    s.node = cursor
+    s.offset = 0
+    if (!node.parent) {
+        // root heading
+        textafter && node.delete(offset, node.length)
+        node.doc!.getArray(ROOT_CONTENT).unshift([paragraph])
+    } else if (node.parent instanceof Y.Map) {
+        if (node.parent.has(CHILDREN)) {
+            // heading
+            textafter && node.delete(offset, node.length)
+            node.parent.get(CONTENT).unshift([paragraph])
+        } else if (node.parent.parent instanceof Y.Array) {
+            // content
+            let index = node.parent.parent.toArray().indexOf(node.parent)
+            if (node.length === 0 && node.parent.parent.parent && node.parent.parent.parent !== s.root && index === node.parent.parent.length - 1) {
+                // on last empty line of content
+                const section = node.parent.parent.parent
+                if (section.parent instanceof Y.Array) {
+                    const section_index = section.parent.toArray().indexOf(section)
+                    const [new_section, cursor] = createSection(textafter)
+                    s.node = cursor
+                    s.offset = 0
+                    section.parent.insert(section_index + 1, [new_section])
+                    node.parent.parent.delete(index)
+                } else {
+                    throw new Error('unreachable')
+                }
+            } else {
+                textafter && node.delete(offset, node.length)
+                node.parent.parent.insert(index + 1, [paragraph])
+            }
+        } else {
+            throw new Error('unreachable')
+
+        }
+    }
+
+}
+
+const replaceText = (s: Sel, e: InputEvent) => {
+    if (!s.focus) {
+        // firefox doesn't select the word
+        console.log('replaceText', e.dataTransfer)
+        const line = s.node.toString()
+        let start = s.offset
+        let end = s.offset
+        while (line[end] !== ' ' && line[end] !== '\n' && end <= line.length) { end++ }
+        while (line[start] !== ' ' && line[start] !== '\n' && start >= 0) { start-- }
+        start++
+        s.offset = start
+        s.focus = { node: s.node, offset: end }
+    }
+    const text = e.dataTransfer?.getData('text') ?? ' '
+    console.log(text)
+    insertText(s, text)
+}
+
+export const paste = (s: Sel, e: InputEvent) => {
+    let data = e.dataTransfer
+    if (!data) return
+    let text = data.getData('text/plain')
+    if (!text) return
+    insertText(s, text)
 }
 
 /* INPUT HANDLERS */
@@ -223,85 +334,34 @@ const deleteSelection = (s: Sel) => {
 export const beforeinputHandler = (e: InputEvent, s: Sel) => {
     e.preventDefault()
     const doc = s.node.doc
-    if (!doc) { throw new Error('node not attacted to doc')}
+    if (!doc) { throw new Error('node not attacted to doc') }
     switch (e.inputType) {
+
         case 'insertLineBreak':
-            insertText(s, '\n')
-            break
+            return insertText(s, '\n')
+
         case 'insertText':
-            insertText(s, e.data!)
-            break
+            return insertText(s, e.data!)
 
         case 'deleteContentBackward':
         case 'deleteWordBackward':
-            deleteContentBackward(s)
-            break
+            return deleteContentBackward(s)
 
         case 'deleteContentForward':
         case 'deleteWordForward':
         case 'deleteContent':
-            deleteContent(s)
-            break
+            return deleteContent(s)
 
         case 'insertParagraph':
-            if (s.focus) { deleteSelection(s) }
-            const node = s.node
-            const offset = s.offset
-            const textafter = offset < node.length ? node.toString().slice(offset) : ''
-            const [paragraph, cursor] = createParagraph(textafter)
-            s.node = cursor
-            s.offset = 0
-            if (node === doc.getText(ROOT_TEXT)) {
-                textafter && node.delete(offset, node.length)
-                doc.getArray(ROOT_CONTENT).unshift([paragraph])
-            } else if (node.parent instanceof Y.Map) {
-                if (node.parent.has(CHILDREN)) {
-                    textafter && node.delete(offset, node.length)
-                    node.parent.get(CONTENT).unshift([paragraph])
-                } else if (node.parent.parent instanceof Y.Array) {
-                    let index = node.parent.parent.toArray().indexOf(node.parent)
-                    if (node.length === 0 && node.parent.parent.parent && node.parent.parent.parent !== s.root && index === node.parent.parent.length - 1) {
-                        const section = node.parent.parent.parent
-                        if (section.parent instanceof Y.Array) {
-                            const section_index = section.parent.toArray().indexOf(section)
-                            const [new_section, cursor] = createSection(textafter)
-                            s.node = cursor
-                            s.offset = 0
-                            section.parent.insert(section_index + 1, [new_section])
-                            node.parent.parent.delete(index)
-                        } else {
-                            throw new Error('unreachable')
-                        }
-                    } else {
-                        textafter && node.delete(offset, node.length)
-                        node.parent.parent.insert(index + 1, [paragraph])
-                    }
-                } else {
-                    throw new Error('unreachable')
+            return split(s)
 
-                }
-            }
-            break
         case 'insertReplacementText':
-            // console.log('replaceText', e.dataTransfer)
-            // const line = s.node.toString()
-            // let start = s.offset
-            // let end = s.offset
-            // while (line[end] !== ' ' && line[end] !== '\n' && end <= line.length) {end++}
-            // while (line[start] !== ' ' && line[start] !== '\n' && start >= 0 ) {start--}
-            // start++
-            // s.offset = start
-            // s.node.delete(start,end-start)
-            const text = e.dataTransfer?.getData('text') ?? ' '
-            console.log(text)
-            insertText(s, text)
-            break
+            return replaceText(s, e)
+
         case 'insertFromPaste':
-            console.log('paste', e)
-            paste(s, e)
-            break
+            return paste(s, e)
+
         default:
-            break
+            return
     }
 }
-

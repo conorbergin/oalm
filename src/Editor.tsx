@@ -5,7 +5,7 @@ import { Sel, selectionFromDom, selectionToDom } from './selection';
 // import { Sequencer, newPiece } from './Sequencer';
 import { TableView, newTable } from './Table';
 import { Embed } from './Embed';
-import { ParagraphView, TextView } from './Text';
+import { ParagraphView, ParagraphView2, TextView } from './Text';
 
 import { Paint } from './Paint';
 
@@ -353,8 +353,11 @@ export const SectionView: Component<{ node: Y.Map<any> | Y.Doc, state: EditorSta
                   <div class="flex flex-col gap-2">
                     <For each={content()}>
                       {(item, index) =>
-                        <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => props.node.get(CONTENT).delete(index())}>delete</button>}>
+                        <ErrorBoundary fallback={<button contentEditable={false} class="bg-red-700" onClick={() => item.parent.delete(index())}>delete</button>}>
                           <Switch>
+                            <Match when={item instanceof Y.Text}>
+                              <ParagraphView2 node={item} state={props.state} tag='p'/>
+                            </Match>
                             <Match when={item.has('embed')}>
                               <Embed node={item} state={props.state} />
                             </Match>

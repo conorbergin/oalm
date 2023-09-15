@@ -157,5 +157,18 @@ export const ParagraphView = (props) => {
     )
 }
 
+export const ParagraphView2 = (props) => {
+
+    const commands = [
+        { name: 'delete', run: () => yDeleteFromArray(props.node) }
+    ]
+
+    return (
+        <ContentContainer commands={commands} state={props.state} node={props.node}>
+            <TextView node={props.node} state={props.state} tag='p' />
+        </ContentContainer>
+    )
+}
+
 
 

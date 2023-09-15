@@ -28,8 +28,6 @@ export const selectionFromDom = (s: Sel, stateFromView: Map<HTMLElement, any>) =
     preAnchorRange.selectNodeContents(anchorNode);
     preAnchorRange.setEnd(range.startContainer, range.startOffset);
 
-
-
     s.node = stateFromView.get(anchorNode as HTMLElement)
     s.offset = preAnchorRange.toString().length
     s.focus = null
