@@ -37,7 +37,7 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
 // }
 
 export const insertText = (s: Sel, text: string) => {
-    if (s.focus) return null
+    if (s.focus) { deleteSelection(s) }
     if (s.node instanceof Y.Text) {
         s.offset += text.length
         s.node.insert(s.offset - text.length, text)
@@ -284,7 +284,17 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
             break
         case 'insertReplacementText':
             // console.log('replaceText', e.dataTransfer)
-            insertText(s, e.dataTransfer?.getData('text/plain'))
+            // const line = s.node.toString()
+            // let start = s.offset
+            // let end = s.offset
+            // while (line[end] !== ' ' && line[end] !== '\n' && end <= line.length) {end++}
+            // while (line[start] !== ' ' && line[start] !== '\n' && start >= 0 ) {start--}
+            // start++
+            // s.offset = start
+            // s.node.delete(start,end-start)
+            const text = e.dataTransfer?.getData('text') ?? ' '
+            console.log(text)
+            insertText(s, text)
             break
         case 'insertFromPaste':
             console.log('paste', e)

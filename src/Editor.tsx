@@ -255,7 +255,7 @@ export const EditorView: Component<{ node: Y.Map<any> | Y.Doc, path: Array<Y.Map
   return (
     <div class='font-serif text-xl p-1'>
 
-      <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+      <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr]" contenteditable={!lock()} spellcheck={true} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
         <SectionView node={props.node} depth={0} state={state} setPath={props.setPath} last={true} undoManager={props.undoManager} />
       </div >
       <Modal show={palette()} setShow={setPalette}>

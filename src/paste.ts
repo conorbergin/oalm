@@ -21,6 +21,3 @@ export const paste = (s:Sel, e:InputEvent) => {
         }
     }
 }
-
-
-const fromPlainText = () => {}
