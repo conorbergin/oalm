@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+    font-size: x-large;
+}
 
 [contenteditable] {
     outline: none;
@@ -9,6 +12,8 @@
     word-wrap: break-word;
     white-space: break-spaces;
 }
+
+.oalmText {padding-left: 4px;}
 
 
 button {

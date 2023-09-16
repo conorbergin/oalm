@@ -44,7 +44,7 @@ export const selectionFromDom = (s: Sel, stateFromView: Map<HTMLElement, any>) =
         }
     }
 
-    console.log(s)
+    // console.log(s)
 
 }
 

@@ -90,21 +90,21 @@ export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc
   return (
     <Show when={calendar()} fallback={
       <>
-        <div class='flex'>
-          <For each={props.path}>
-            {(item, index) => <Show when={index() < props.path.length - 1}><button onClick={() => {props.setPath(p => [...p.slice(0, index() + 1)]); console.log(props.path)}}>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</button></Show>}
+        <div class='flex text-xs '>
+          <For each={props.path.slice(0,-1)}>
+            {(item, index) => <button onClick={() => props.setPath(p => [...p.slice(0, index() + 1)])}>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()} / </button>}
           </For>
         </div>
-        <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr] p-1" contenteditable={!lock()} spellcheck={true} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div class=" editor grid grid-cols-[1fr_min(100%,70ch)_1fr] " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
           <div class='col-span-2 flex flex-col'>
             <div class='flex sticky top-0 bg-white border-b'>
               <button onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}>+</button>
-              <div class='font-bold '>
+              <div class='font-bold text-xl '>
                 <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
               </div>
             </div>
             <Show when={children().length > 0 || content().length > 0}>
-              <div class="flex flex-col gap-2 pt-2" style=''>
+              <div class="flex flex-col" style=''>
                 <For each={content()}>
                   {(item) => <ContentContainer node={item} state={state} />}
                 </For>
@@ -163,7 +163,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 
   return (
 
-    <div ref={s} class=' section  flex flex-col pt-1'>
+    <div ref={s} class=' section  flex flex-col ' style='margin-top:-1px'>
       <Modal show={date()} setShow={setDate}>
         <TaskEventPicker date={taskEvent()} node={props.node} />
         <button onClick={() => props.setCalendar(true)}>Open Calendar</button>
@@ -171,19 +171,19 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
       <Modal show={menu()} setShow={setMenu}>
         <div class='flex flex-col'>
           <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
-          <button onClick={() => addSection(s)} >+ sibling</button>
+          {/* <button onClick={() => addSection(s)} >+ sibling</button> */}
           <button onClick={() => props.node.get(CHILDREN).unshift([createSection('')[0]])} >+ child</button>
           <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
           <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
         </div>
       </Modal>
-      <div class=' flex gap-1'>
-        <div contentEditable={false} class='flex '>
+      <div class=' flex '>
+        <div contentEditable={false} class='flex'>
           <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
             {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
           </div>
         </div>
-        <div class='flex flex-col gap-1 pb-1 pt-1 w-full'>
+        <div class='flex flex-col  w-full pb-1'>
           <Show when={taskEvent()}>
             <button contentEditable={false} class='self-start  text-sm' onClick={() => setDate(true)}><TaskEventString taskEvent={taskEvent()} /></button>
           </Show>
@@ -191,7 +191,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
             <TextView node={props.node.get(TEXT)} state={props.state} tag={`h${props.depth + 1}`} />
           </div>
           <Show when={children().length > 0 || content().length > 0}>
-            <div class="flex flex-col gap-2 pt-2" style='margin-left: -10px'>
+            <div class="flex flex-col  " style='margin-left: -10px'>
               <For each={content()}>
                 {(item) => <ContentContainer node={item} state={props.state} />}
               </For>
@@ -234,8 +234,8 @@ export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: Edi
           <button onClick={() => props.node.parent.delete(props.node.parent.toArray().indexOf(props.node))}>delete</button>
         </div>
       </Modal>
-      <div ref={r} class="flex gap-1 content">
-        <div contentEditable={false} class='bg-white border rounded'>
+      <div ref={r} class="flex content" style='margin-top:-1px'>
+        <div contentEditable={false} class='bg-white border'>
           <div class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
             {/* <HandleIcon2 last={false} section={false} sprogs={false} /> */}
           </div>
@@ -259,7 +259,6 @@ export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: Edi
           </ErrorBoundary>
         </div>
       </div>
-
     </>
   )
 }

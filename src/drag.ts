@@ -18,6 +18,7 @@ export const drag = (event: PointerEvent, node: any, state: EditorState, klass: 
     let dragElement = targetElement.cloneNode(true) as HTMLElement
     let dragShadow = Object.assign(document.createElement('div'), { className: 'border bg-gray-100' })
     dragShadow.style.height = rect.height + 'px'
+    dragShadow.style.marginTop = '-1px'
   
     let initialX = event.clientX - rect.left
     let initialY = event.clientY - rect.top
