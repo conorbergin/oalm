@@ -7,7 +7,7 @@ import { Dialog } from "./Dialog";
 import { Codemirror } from "./Codemirror";
 import { ySignal } from "./utils";
 import { DateSelector, TaskEventPicker, TaskEvent } from "./TaskEvent";
-import { CHILDREN, TEXT } from "./input";
+import { CHILDREN, ROOT_CHILDREN, TEXT } from "./input";
 
 const TASKEVENT = '10'
 
@@ -46,10 +46,13 @@ export const CalendarView: Component<{ doc: Y.Doc }> = (props) => {
     
     const inRange = (t:TaskEvent) => t.end?.date && (t.begin?.date ? t.begin.date < endDate.toString() : t.end.date < endDate.toString())
 
+    
     const f = (node: Y.Map<any>) => [...(node.has(TASKEVENT) && inRange(node.get(TASKEVENT)) ? [node] : []), ...(node.has(CHILDREN) ? node.get(CHILDREN).toArray().flatMap((n) => f(n)) : [])]
+    const fd = (doc:Y.Doc) => doc.getArray(ROOT_CHILDREN).toArray().flatMap((n) => f(n))
 
+    let root = props.doc.getArray(ROOT_CHILDREN)
     const g = () => {
-        let d = f(props.root)
+        let d = fd(props.doc)
         setDates(d)
     }
 

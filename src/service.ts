@@ -16,6 +16,9 @@ export type DocData = {
     write?: string,
 }
 
+export const key2string = async (key:CryptoKey) =>  crypto.subtle.exportKey('raw',key).then(r => Base64.fromUint8Array(new Uint8Array(r)))
+export const string2key = async (key:string) => crypto.subtle.importKey('raw',Base64.toUint8Array(key),{name: 'AES-GCM'},true,['encrypt','decrypt'])
+
 const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
 const encrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
@@ -139,11 +142,11 @@ export const register = async (user: UserData, publicKey: ArrayBuffer, keychain:
 
 
 
-export const syncKeychain = async (doc: Y.Doc, user: UserData, counters: Map<string, string>, modified: boolean) => {
-    const g = await fetch(`${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}&counter=${counters.get(user.userid)}`)
+export const syncKeychain = async (doc: Y.Doc, user: UserData, counters: Map<string, string>,force:boolean, modified: boolean) => {
+    const g = await fetch(`${API_URL}/keychain?user=${user.userid}&hash=${user.masterHash}&counter=${!force && counters.get(user.userid)}`)
     if (g.ok) {
         const s_counter = g.headers.get('counter')
-        console.log(`counter ${counters.get(user.userid)}, server counter: ${s_counter}`)
+        console.log(`counter ${counters.get(user.userid)}, server counter: ${s_counter}, force: ${force}`)
         await decrypt(await (await g.blob()).arrayBuffer(), user).then(u => Y.applyUpdate(doc, new Uint8Array(u))).catch(e => console.log('decryption error:' + e))
         if (s_counter) { counters.set(user.userid, s_counter) }
     } else {
@@ -158,18 +161,18 @@ export const syncKeychain = async (doc: Y.Doc, user: UserData, counters: Map<str
             }
         )
         if (p.ok) {
-            console.log('hello counter')
+            console.log('keychain pushed')
             const c = counters.get(user.userid)
             if (c) { counters.set(user.userid, `${parseInt(c) + 1}`) }
         }
     }
 }
 
-export const syncDoc = async (doc: Y.Doc, meta: DocData, user: UserData, counters: Map<string, string>, modified: boolean) => {
-    const g = await fetch(`${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${meta.id}&read=${meta.read}&counter=${counters.get(meta.id)}`)
+export const syncDoc = async (doc: Y.Doc, meta: DocData, user: UserData, counters: Map<string, string>,force:boolean, modified: boolean) => {
+    const g = await fetch(`${API_URL}/doc?user=${user.userid}&hash=${user.masterHash}&doc=${meta.id}&read=${meta.read}&counter=${!force && counters.get(meta.id)}`)
     if (g.ok) {
         const s_counter = g.headers.get('counter')
-        console.log(`counter ${counters.get(meta.id)}, server counter: ${s_counter}`)
+        console.log(`counter ${counters.get(meta.id)}, server counter: ${s_counter}, force: ${force}`)
         await decrypt(await (await g.blob()).arrayBuffer(), user).then(u => Y.applyUpdate(doc, new Uint8Array(u))).catch(e => console.log('decryption error:' + e))
         if (s_counter) { counters.set(meta.id, s_counter) }
     } else {
@@ -184,6 +187,7 @@ export const syncDoc = async (doc: Y.Doc, meta: DocData, user: UserData, counter
             }
         )
         if (p.ok) {
+            console.log('doc pushed')
             const c = counters.get(meta.id)
             if (c) { counters.set(meta.id, `${parseInt(c) + 1}`) }
         }

@@ -12,4 +12,7 @@ Oalm distiguishes between things with set dates, such as deadlines, meetings or 
 These events then appear in the Calendar view.
 
 # Text editing
-<Enter> creates a new node, <Shift+Enter> creates a line break. Bold, italic  and code are created by wrapping the text in asterisks, underscores and backticks. Links are created by wrapping the text in square brackets. 
+- <Enter> creates a new node, <Shift+Enter> creates a line break
+- Bold, italic  and code are created by wrapping the text in asterisks, underscores and backticks
+- Links are created by wrapping the text in square brackets
+- Checkboxs can be created at the start of a line using an underscore or 'x' followed by a space

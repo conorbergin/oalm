@@ -1,6 +1,6 @@
 import { Component, For, Switch, Match, Suspense, onMount, lazy, Show, createSignal, createEffect, onCleanup, Accessor, Setter, ErrorBoundary } from 'solid-js'
 
-import { deriveUser, syncKeychain, syncDoc, UserData, DocData, authenticate, register, createKeychain } from './service'
+import { deriveUser, syncKeychain, syncDoc, UserData, DocData, authenticate, register, createKeychain, key2string, string2key } from './service'
 
 
 
@@ -16,6 +16,7 @@ import { Modal } from './Dialog'
 import { EditorView } from "./Editor";
 import * as Icons from './Icons'
 import { ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, TEXT } from './input'
+import { local } from 'd3-selection'
 
 // https://stackoverflow.com/a/9204568
 const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
@@ -25,6 +26,7 @@ const INTERVAL = 1000 * 20
 const PASSWORD_TOO_SHORT = 10
 const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
 
+
 export const App: Component = () => {
   return (
     <ErrorBoundary fallback={e => <div>Fatal Error: + {e}</div>}>
@@ -32,6 +34,27 @@ export const App: Component = () => {
     </ErrorBoundary>
   )
 }
+
+const getLocalUserData = async ():Promise<UserData | null> => {
+  const userid = localStorage.getItem('oalm-id')
+  const key = localStorage.getItem('oalm-key')
+  const masterHash = localStorage.getItem('oalm-hash')
+  if (userid && key && masterHash ) {
+    console.log('got local user data')
+    const masterKey = await string2key(key)
+    return {userid, masterKey, masterHash}
+  } else {
+    console.log('failed to get local user data')
+    return null
+  }
+}
+
+const setLocalUserData = async (u:UserData) => {
+  localStorage.setItem('oalm-id',u.userid)
+  localStorage.setItem('oalm-key',await key2string(u.masterKey))
+  localStorage.setItem('oalm-hash',u.masterHash)
+}
+
 
 export const AppView: Component = () => {
 
@@ -42,29 +65,29 @@ export const AppView: Component = () => {
   const counters = new Map()
 
   const [docData, setDocData] = createSignal<null | DocData>(null)
-  const [userData, setUserData] = createSignal<null | UserData>(null)
+  const [userData, setUserData] = createSignal<null | UserData>()
+  console.log(userData())
   const [accountModal, setAccountModal] = createSignal(false)
   const [docs, setDocs] = createSignal<null | Array<[string, Y.Map<any>]>>(null)
   const [message, setMessage] = createSignal('')
   const [doc, setDoc] = createSignal<null | Y.Doc>(null)
 
-  const sync = () => {
+  getLocalUserData().then(u => setUserData(u))
+  console.log(localStorage.getItem('oalm-id'))
+
+
+  const sync = (force:boolean) => {
     const u = userData()
     const d = docData()
-    if (u) { syncKeychain(kcdoc, u, counters, modified) }
-    if (d && u) { syncDoc(ydoc, d, u, counters, modified) }
+    if (u) { syncKeychain(kcdoc, u, counters,force, modified) }
+    if (d && u) { syncDoc(ydoc, d, u, counters,force, modified) }
     modified = false
   }
 
-  setInterval(sync, INTERVAL)
+  setInterval(() => sync(false), INTERVAL)
 
   // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
 
-
-  let f = () => {
-    setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
-    modified = true
-  }
 
 
   let e: HTMLInputElement
@@ -79,11 +102,9 @@ export const AppView: Component = () => {
     console.log(user)
     const resp = await authenticate(user)
     if (resp.status === 200) {
+      persist = c.value === 'on'
       setUserData(user)
-      syncKeychain(kcdoc, user, counters, false)
-      // console.log(kcdoc.getMap('oalm-keychain').toJSON())
-      setDocs(Array.from(kcdoc.getMap('oalm-keychain').entries()))
-      kcdoc.getMap('oalm-keychain').observe(f)
+      setLocalUserData(user)
     } else if (resp.status === 404) {
       setMessage('Registering Account')
       let [kc, pub] = await createKeychain(user)
@@ -93,21 +114,43 @@ export const AppView: Component = () => {
       let t = await resp.text()
       setMessage(t)
     }
-
   }
 
+
+  const f = () => {
+    const arr = Array.from(kcdoc.getMap('oalm-keychain').entries())
+    setDocs(arr)
+    modified = true
+  }
+
+
   createEffect(async () => {
-    setDoc(null)
+    const user = userData()
+    if (user) {
+      if (persist) {
+        const indexeddbProvider = new IndexeddbPersistence(user.userid,kcdoc)
+      }
+      kcdoc.getMap('oalm-keychain').observe(f)
+      await syncKeychain(kcdoc, user, counters, true, false)
+      const l = localStorage.getItem('oalm-last-opened')
+      if (l) {
+        setDoc(l,...kcdoc.getMap('oalm-keychain').get(l).toJSON())
+      }
+    }
+  })
+
+  createEffect(async () => {
     ydoc.destroy()
     ydoc = new Y.Doc()
     const d = docData()
     if (d) {
       if (persist) {
+        localStorage.setItem('oalm-last-opened',d.id)
         const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
         await indexeddbProvider.whenSynced
-        syncDoc(ydoc, d, userData()!, counters, false)
+        syncDoc(ydoc, d, userData()!, counters,true, false)
       } else {
-        await syncDoc(ydoc, d, userData()!, counters, false)
+        await syncDoc(ydoc, d, userData()!, counters,true, false)
       }
       ydoc.getMap('01').observeDeep(() => modified = true)
       ydoc.getMap('02').observeDeep(() => modified = true)
@@ -120,6 +163,8 @@ export const AppView: Component = () => {
     console.log(ydoc.getText(ROOT_TEXT).toJSON())
     console.log(ydoc.getArray(ROOT_CONTENT).toJSON())
     console.log(ydoc.getArray(ROOT_CHILDREN).toJSON())
+    setDoc(null)
+
     setDoc(ydoc)
   })
 
@@ -139,10 +184,10 @@ export const AppView: Component = () => {
               </div>
             }>
               <p>{userData()!.userid}</p>
-              <button onClick={() => setUserData(null)}>Sign Out</button>
+              <button onClick={() => {setUserData(null);localStorage.clear()}}>Sign Out</button>
               <Show when={docs()} fallback="waiting for keychain ...">
                 <div class="flex  flex-col justify-center gap-2">
-                  <button onClick={() => sync()}>Sync</button>
+                  <button onClick={() => sync(true)}>Sync</button>
                   <For each={docs()}>
                     {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() })}>{id}</button>}
                   </For>
@@ -154,43 +199,5 @@ export const AppView: Component = () => {
         </>
       }
     </Show>
-
   )
 }
-
-
-
-// const handleKeyDown = (e: KeyboardEvent) => {
-//     if (e.key === 'z' && e.ctrlKey) {
-//         e.preventDefault()
-//         console.log('undo')
-//         undoManager.undo()
-//     } else if (e.key === 'y' && e.ctrlKey) {
-//         e.preventDefault()
-//         undoManager.redo()
-//     }
-// }
-
-
-// <div class='touch-pan-y grid w-full grid-rows-[min-content_1fr]' >
-//     <Show when={synced()}>
-//         <div class='sticky top-0 border-b z-10 bg-white p-1 gap-1 grid grid-cols-[min-content_1fr_min-content]'>
-//             <div class='flex gap-1'>
-//                 <UndoRedo undoManager={undoManager!} />
-//             </div>
-//             <div class='flex overflow-auto gap-1 whitespace-nowrap '>
-//                 <For each={path()}>
-//                     {(item, index) => <Show when={index() !== path().length - 1}><button class="font-bold" onClick={() => { console.log(index()); setPath(p => [...p.slice(0, index() + 1)]) }}>{(item instanceof Y.Doc ? item.get(ROOT_TEXT).toString() : item.get(TEXT).toString()) + ' >'}</button></Show>}
-//                 </For>
-//             </div>
-//             <button onClick={() => setAccountModal(true)}><Icons.Sync color={'black'} /></button>
-//         </div>
-//         <div class=''>
-//             <For each={path()}>
-//                 {(item, index) =>
-//                     <Show when={index() === path().length - 1}>
-//                         <EditorView node={item} setPath={setPath} path={path()} undoManager={undoManager} />
-//                     </Show>}
-//             </For>
-//         </div>
-//     </Show >

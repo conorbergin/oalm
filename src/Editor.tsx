@@ -36,23 +36,32 @@ export class EditorState {
 }
 
 const buildPath = (m: Y.Map<any> | Y.Doc): (Y.Map<any> | Y.Doc)[] => {
-if (!m.parent?.parent) {
+  if (m instanceof Y.Doc) {
     return [m]
   } else {
-    return [...buildPath(m.parent.parent as Y.Map<any>), m]
+    const parent = m.parent?.parent as Y.Map<any> ?? m.doc!
+    return [...buildPath(parent as Y.Map<any>), m]
   }
 }
 
 
-export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
-  const [canUndo, setCanUndo] = createSignal(props.undoManager.canUndo())
-  const [canRedo, setCanRedo] = createSignal(props.undoManager.canRedo())
-  props.undoManager.on('stack-item-added', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
-  props.undoManager.on('stack-item-popped', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
+export const UndoRedo: Component<{ root: Y.Doc | Y.Map<any> }> = (props) => {
+  let undoManager : Y.UndoManager
+  const [canUndo, setCanUndo] = createSignal(false)
+  const [canRedo, setCanRedo] = createSignal(false)
+  
+  createEffect(() => {
+    setCanRedo(false)
+    setCanUndo(false)
+    undoManager = new Y.UndoManager(props.root instanceof Y.Doc ? [props.root.getText(ROOT_TEXT), props.root.getArray(ROOT_CONTENT), props.root.getArray(ROOT_CHILDREN)] : [props.root])
+    undoManager.on('stack-item-added',  () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+    undoManager.on('stack-item-popped', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+  })
+
   return (
     <>
-      <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
-      <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
+      <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}>⮢</button>
+      <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}>⮣</button>
     </>
   )
 }
@@ -67,20 +76,18 @@ export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean>
   const path = () => buildPath(root())
   console.log(path())
 
-  let undoManager = new Y.UndoManager(root() instanceof Y.Doc ? [root().getText(ROOT_TEXT), root().getArray(ROOT_CONTENT), root().getArray(ROOT_CHILDREN)] : [root()])
-
   return (
     <Show when={calendar()} fallback={
       <>
         <div class='fixed top-0 w-full bg-white'>
           <div class='m-auto w-full max-w-prose flex '>
-            <button class='text-xs w-4' onClick={() => props.setAccountView(true)}><div class='w-3'>=</div></button>
-            <div class='w-fit  text-xs ' >
-              <For each={path()}>
+            <button class='text-xs w-4' onClick={() => props.setAccountView(true)}><div class='w-3'>⌂</div></button>
+            <div class='flex-1 text-xs pt-1' >
+              <For each={path().slice(0,-1)}>
                 {item => <button onClick={() => setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span> / </button>}
               </For>
             </div>
-            <UndoRedo undoManager={undoManager} />
+            <UndoRedo root={root()} />
           </div>
         </div>
         <For each={path()}>
@@ -90,12 +97,16 @@ export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean>
 
       </>
     }>
+      <div class='sticky top-0 bg-white border-b'>
+        <button onClick={() => setCalendar(false)}>back</button>
+      </div>
       <CalendarView doc={props.doc} />
     </Show >
   )
 }
 
 export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Setter<Y.Doc | Y.Map<any>>, setCalendar: Setter<boolean> }> = (props) => {
+  console.log('reload')
   let state = new EditorState()
   let selection = {
     root: props.node,
@@ -140,10 +151,10 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
 
   return (
     <>
-      <div style='margin-left:-1px' class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
-        <div class='fixed top-4 w-full bg-white'>
+      <div  class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div class='fixed top-5 w-full bg-white'>
 
-          <div class=' m-auto  w-full flex border-b'>
+          <div class=' m-auto  w-full flex border-b border-t'>
             <div class='m-auto max-w-prose flex w-full'>
               <button class=' border-l border-r' onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
               <div class='font-bold text-xl '>

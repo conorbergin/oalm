@@ -277,7 +277,7 @@ const deleteSelection = (s: Sel) => {
     s.focus = null
     doc.transact(() => {
         if (start === end) {
-            start.delete(s_offset,start.length-e_offset)
+            start.delete(s_offset,e_offset - s_offset)
         } else if (start.parent instanceof Y.Array && start.parent === end.parent) {
             // both in content 
             const s_index = start.parent.toArray().indexOf(start)
