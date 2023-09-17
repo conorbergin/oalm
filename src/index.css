@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-    font-size: large;
+    font-size: x-large;
 }
 
 [contenteditable] {
