@@ -36,12 +36,10 @@ export class EditorState {
 }
 
 const buildPath = (m: Y.Map<any> | Y.Doc): (Y.Map<any> | Y.Doc)[] => {
-  if (m instanceof Y.Doc) {
-    return []
-  } else if (!m.parent?.parent) {
-    return [m.doc!]
+if (!m.parent?.parent) {
+    return [m]
   } else {
-    return [...buildPath(m.parent.parent as Y.Map<any>), m.parent.parent as Y.Map<any>]
+    return [...buildPath(m.parent.parent as Y.Map<any>), m]
   }
 }
 
@@ -52,20 +50,53 @@ export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
   props.undoManager.on('stack-item-added', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
   props.undoManager.on('stack-item-popped', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
   return (
-      <>
-          <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
-          <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
-      </>
+    <>
+      <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
+      <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
+    </>
   )
 }
 
 
+export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean> }> = (props) => {
 
-export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc | Y.Map<any>>, setPath: Setter<Array<Y.Doc | Y.Map<any>>>, setAccountView: Setter<boolean> }> = (props) => {
+  const [root, setRoot] = createSignal<Y.Map<any> | Y.Doc>(props.doc)
 
-  console.log(props.node instanceof Y.Doc)
+  const [calendar, setCalendar] = createSignal(false)
+
+  const path = () => buildPath(root())
+  console.log(path())
+
+  let undoManager = new Y.UndoManager(root() instanceof Y.Doc ? [root().getText(ROOT_TEXT), root().getArray(ROOT_CONTENT), root().getArray(ROOT_CHILDREN)] : [root()])
+
+  return (
+    <Show when={calendar()} fallback={
+      <>
+        <div class='fixed top-0 w-full bg-white'>
+          <div class='m-auto w-full max-w-prose flex '>
+            <button class='text-xs w-4' onClick={() => props.setAccountView(true)}><div class='w-3'>=</div></button>
+            <div class='w-fit  text-xs ' >
+              <For each={path()}>
+                {item => <button onClick={() => setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span> / </button>}
+              </For>
+            </div>
+            <UndoRedo undoManager={undoManager} />
+          </div>
+        </div>
+        <For each={path()}>
+          {(item,index) => <Show when={index() === path().length -1 }><RootSectionView node={item} setRoot={setRoot} setCalendar={setCalendar}/></Show>}
+        </For>
+
+
+      </>
+    }>
+      <CalendarView doc={props.doc} />
+    </Show >
+  )
+}
+
+export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Setter<Y.Doc | Y.Map<any>>, setCalendar: Setter<boolean> }> = (props) => {
   let state = new EditorState()
-
   let selection = {
     root: props.node,
     node: props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT),
@@ -73,40 +104,31 @@ export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc
     focus: null
   }
 
-  const undoManager = new Y.UndoManager(props.node instanceof Y.Doc ? [props.node.getText(ROOT_TEXT),props.node.getArray(ROOT_CONTENT),props.node.getArray(ROOT_CHILDREN)] : props.node)
 
-  const taskEvent = props.node instanceof Y.Doc ? () => null : ySignal(props.node, TASKEVENT)
-  const children = yArraySignal(props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN) : props.node.get(CHILDREN))
-  const content = yArraySignal(props.node instanceof Y.Doc ? props.node.getArray(ROOT_CONTENT) : props.node.get(CONTENT))
-
-  console.log(children())
-
-
-  const [path, setPath] = createSignal([props.node])
-  const [calendar, setCalendar] = createSignal(false)
+  let taskEvent = props.node instanceof Y.Doc ? () => null : ySignal(props.node, TASKEVENT)
+  let children = yArraySignal(props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN) : props.node.get(CHILDREN))
+  let content = yArraySignal(props.node instanceof Y.Doc ? props.node.getArray(ROOT_CONTENT) : props.node.get(CONTENT))
 
   const [palette, setPalette] = createSignal(false)
-  const [paletteCoords, setPaletteCoords] = createSignal({ x: 0, y: 0 })
 
-  const keydownHandler = (e: KeyboardEvent, s: Sel) => {
-    switch (true) {
-
-      case e.key === ' ' && s.offset === 0 && s.node.length === 0:
-        e.preventDefault()
-        let r = state.domFromDoc.get(s.node).getBoundingClientRect()
-        setPaletteCoords({ x: r.left, y: r.top })
-        setPalette(true)
-        break
-      default:
-        break
-    }
-  }
 
   const handleBeforeInput = (e) => {
     beforeinputHandler(e, selection)
     selectionToDom(selection, state.domFromDoc)
     console.log(state.domFromDoc.get(selection.node))
     state.domFromDoc.get(selection.node)?.scrollIntoView({ block: 'nearest', inline: 'start' })
+  }
+
+  const keydownHandler = (e: KeyboardEvent, s: Sel) => {
+    switch (true) {
+
+      case e.key === ' ' && s.offset === 0 && s.node.length === 0:
+        e.preventDefault()
+        setPalette(true)
+        break
+      default:
+        break
+    }
   }
 
   const handleKeyDown = (e) => {
@@ -117,59 +139,45 @@ export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc
   }
 
   return (
-    <Show when={calendar()} fallback={
-      <>
-        <div style='margin-left:-1px' class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
-          <div class='sticky top-0 bg-white'>
-            <div contentEditable={false} class='border-b '>
-              <div class='m-auto w-full max-w-prose flex '>
-                <UndoRedo undoManager={undoManager}/>
-                <button class='text-xs' onClick={() => props.setAccountView(true)}><div class='w-3'>=</div></button>
-                <div class='w-fit m-1 p-0.5  bg-gray-200 rounded text-xs font-bold' classList={{'hidden':props.node instanceof Y.Doc}}>
+    <>
+      <div style='margin-left:-1px' class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div class='fixed top-4 w-full bg-white'>
 
-                  <For each={buildPath(props.node)}>
-                    {item => <button onClick={() => props.setPath([item])}>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()} / </button>}
-                  </For>
-                </div>
-              </div>
-            </div>
-            <div class='m-auto  w-full flex border-b'>
-              <div class='m-auto max-w-prose flex w-full'>
-                <button class=' border-l border-r' onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
-                <div class='font-bold text-xl '>
-                  <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
-                </div>
+          <div class=' m-auto  w-full flex border-b'>
+            <div class='m-auto max-w-prose flex w-full'>
+              <button class=' border-l border-r' onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
+              <div class='font-bold text-xl '>
+                <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
               </div>
             </div>
           </div>
-          <div class='m-auto max-w-prose w-full flex flex-col'>
-            <Show when={children().length > 0 || content().length > 0}>
-              <div class="flex flex-col" style=''>
-                <For each={content()}>
-                  {(item) => <ContentContainer node={item} state={state} />}
-                </For>
-                <For each={children()}>
-                  {(item, index) => <SectionView node={item} state={state} depth={1} setPath={props.setPath} setCalendar={setCalendar} />}
-                </For>
-              </div>
-            </Show>
-          </div>
-        </div >
-        <Modal show={palette()} setShow={setPalette}>
-          <div class='flex flex-col'>
-            <button onClick={() => { yReplaceInArray(selection.node, createPaint()) }}>Paint</button>
-            <button onClick={() => { yReplaceInArray(selection.node, createEmbed()) }}>Embed</button>
-            <button onClick={() => { yReplaceInArray(selection.node, newTable('')[0]) }}>Table</button>
-          </div>
-        </Modal>
-      </>
-    }>
-      <CalendarView doc={props.node instanceof Y.Doc ? props.node : props.node.doc!} />
-    </Show>
+        </div>
+        <div class=' mt-11 m-auto max-w-prose w-full flex flex-col'>
+          <Show when={children().length > 0 || content().length > 0}>
+            <div class="flex flex-col" style=''>
+              <For each={content()}>
+                {(item) => <ContentContainer node={item} state={state} />}
+              </For>
+              <For each={children()}>
+                {(item, index) => <SectionView node={item} state={state} depth={1} setRoot={props.setRoot} setCalendar={props.setCalendar} />}
+              </For>
+            </div>
+          </Show>
+        </div>
+      </div >
+      <Modal show={palette()} setShow={setPalette}>
+        <div class='flex flex-col'>
+          <button onClick={() => { yReplaceInArray(selection.node, createPaint()) }}>Paint</button>
+          <button onClick={() => { yReplaceInArray(selection.node, createEmbed()) }}>Embed</button>
+          <button onClick={() => { yReplaceInArray(selection.node, newTable('')[0]) }}>Table</button>
+        </div>
+      </Modal>
+    </>
+
   )
 }
 
-export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setPath: Setter<Array<Y.Map<any>>>, setCalendar: Setter<boolean> }> = (props) => {
+export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, depth: number, setRoot: Setter<Y.Map<any>>, setCalendar: Setter<boolean> }> = (props) => {
 
   let s: HTMLElement
 
@@ -213,7 +221,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
           <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
           {/* <button onClick={() => addSection(s)} >+ sibling</button> */}
           <button onClick={() => props.node.get(CHILDREN).unshift([createSection('')[0]])} >+ child</button>
-          <button onClick={() => props.setPath(p => [...p, props.node])}>Open</button>
+          <button onClick={() => props.setRoot(props.node)}>Open</button>
           <button onClick={() => { setDate(true); setMenu(false) }}>date</button>
         </div>
       </Modal>
@@ -236,7 +244,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
                 {(item) => <ContentContainer node={item} state={props.state} />}
               </For>
               <For each={children()}>
-                {(item, index) => <SectionView node={item} state={props.state} depth={props.depth + 1} setPath={props.setPath} setCalendar={props.setCalendar} />}
+                {(item, index) => <SectionView node={item} state={props.state} depth={props.depth + 1} setRoot={props.setRoot} setCalendar={props.setCalendar} />}
               </For>
             </div>
           </Show>
