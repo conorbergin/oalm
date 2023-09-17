@@ -7,6 +7,7 @@ import { TableView, newTable } from './Table';
 import { Embed, createEmbed } from './Embed';
 import { ParagraphView, TextView } from './Text';
 import { drag } from './drag'
+import * as Icons from './Icons'
 
 import { Paint, createPaint } from './Paint';
 
@@ -44,6 +45,22 @@ const buildPath = (m: Y.Map<any> | Y.Doc): (Y.Map<any> | Y.Doc)[] => {
   }
 }
 
+
+export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
+  const [canUndo, setCanUndo] = createSignal(props.undoManager.canUndo())
+  const [canRedo, setCanRedo] = createSignal(props.undoManager.canRedo())
+  props.undoManager.on('stack-item-added', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
+  props.undoManager.on('stack-item-popped', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
+  return (
+      <>
+          <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
+          <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
+      </>
+  )
+}
+
+
+
 export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc | Y.Map<any>>, setPath: Setter<Array<Y.Doc | Y.Map<any>>>, setAccountView: Setter<boolean> }> = (props) => {
 
   console.log(props.node instanceof Y.Doc)
@@ -55,6 +72,8 @@ export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc
     offset: 0,
     focus: null
   }
+
+  const undoManager = new Y.UndoManager(props.node instanceof Y.Doc ? [props.node.getText(ROOT_TEXT),props.node.getArray(ROOT_CONTENT),props.node.getArray(ROOT_CHILDREN)] : props.node)
 
   const taskEvent = props.node instanceof Y.Doc ? () => null : ySignal(props.node, TASKEVENT)
   const children = yArraySignal(props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN) : props.node.get(CHILDREN))
@@ -104,7 +123,8 @@ export const EditorView: Component<{ node: Y.Doc | Y.Map<any>, path: Array<Y.Doc
           <div class='sticky top-0 bg-white'>
             <div contentEditable={false} class='border-b '>
               <div class='m-auto w-full max-w-prose flex '>
-                <button class='text-xs border-l border-r' onClick={() => props.setAccountView(true)}><div class='w-3'>=</div></button>
+                <UndoRedo undoManager={undoManager}/>
+                <button class='text-xs' onClick={() => props.setAccountView(true)}><div class='w-3'>=</div></button>
                 <div class='w-fit m-1 p-0.5  bg-gray-200 rounded text-xs font-bold' classList={{'hidden':props.node instanceof Y.Doc}}>
 
                   <For each={buildPath(props.node)}>

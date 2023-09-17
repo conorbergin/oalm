@@ -160,20 +160,6 @@ export const AppView: Component = () => {
     )
 }
 
-export const UndoRedo: Component<{ undoManager: Y.UndoManager }> = (props) => {
-    const [canUndo, setCanUndo] = createSignal(props.undoManager.canUndo())
-    const [canRedo, setCanRedo] = createSignal(props.undoManager.canRedo())
-    props.undoManager.on('stack-item-added', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
-    props.undoManager.on('stack-item-popped', () => { setCanUndo(props.undoManager.canUndo()); setCanRedo(props.undoManager.canRedo()) })
-    return (
-        <>
-            <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => props.undoManager.undo()}><Icons.Undo /></button>
-            <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => props.undoManager.redo()}><Icons.Redo /></button>
-        </>
-    )
-}
-
-
 
 
 // const handleKeyDown = (e: KeyboardEvent) => {

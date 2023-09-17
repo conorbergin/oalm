@@ -2,14 +2,14 @@ import * as Y from "yjs"
 import { Match, Switch, For, Component, createSignal, Accessor, Setter, untrack, onCleanup, onMount, Show } from "solid-js"
 import * as Icons from "./Icons";
 
-import { drag, EditorState, ContentContainer } from './Editor'
+import {EditorState, ContentContainer } from './Editor'
 import { yDeleteFromArray, yArraySignal, ySignal } from "./utils";
 
 
 
 import { getStroke } from 'perfect-freehand'
 import { Dialog, Modal, ModalFull } from "./Dialog";
-import { UndoRedo } from "./App";
+import { UndoRedo } from "./Editor";
 
 export const createPaint = () => {
   const m = new Y.Map()
