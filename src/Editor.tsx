@@ -46,23 +46,23 @@ const buildPath = (m: Y.Map<any> | Y.Doc): (Y.Map<any> | Y.Doc)[] => {
 
 
 export const UndoRedo: Component<{ root: Y.Doc | Y.Map<any> }> = (props) => {
-  let undoManager : Y.UndoManager
+  let undoManager: Y.UndoManager
   const [canUndo, setCanUndo] = createSignal(false)
   const [canRedo, setCanRedo] = createSignal(false)
-  
+
   createEffect(() => {
     setCanRedo(false)
     setCanUndo(false)
     undoManager = new Y.UndoManager(props.root instanceof Y.Doc ? [props.root.getText(ROOT_TEXT), props.root.getArray(ROOT_CONTENT), props.root.getArray(ROOT_CHILDREN)] : [props.root])
-    undoManager.on('stack-item-added',  () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
+    undoManager.on('stack-item-added', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
     undoManager.on('stack-item-popped', () => { setCanUndo(undoManager.canUndo()); setCanRedo(undoManager.canRedo()) })
   })
 
   return (
-    <>
-      <button classList={{ 'text-gray-400': !canUndo() }} onClick={() => undoManager.undo()}>⮢</button>
-      <button classList={{ 'text-gray-400': !canRedo() }} onClick={() => undoManager.redo()}>⮣</button>
-    </>
+    <div class='flex text-xs gap-1 underline'>
+      <button classList={{ 'opacity-50': !canUndo() }} onClick={() => undoManager.undo()}>undo</button>
+      <button classList={{ 'opacity-50 ': !canRedo() }} onClick={() => undoManager.redo()}>redo</button>
+    </div>
   )
 }
 
@@ -79,19 +79,19 @@ export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean>
   return (
     <Show when={calendar()} fallback={
       <>
-        <div class='fixed top-0 w-full bg-white'>
-          <div class='m-auto w-full max-w-prose flex '>
-            <button class='text-xs w-4' onClick={() => props.setAccountView(true)}><div class='w-3'>⌂</div></button>
-            <div class='flex-1 text-xs pt-1' >
-              <For each={path().slice(0,-1)}>
-                {item => <button onClick={() => setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span> / </button>}
+        <div class='sticky top-0 h-5 w-full bg-white'>
+          <div class='m-auto w-full max-w-prose flex gap-1 p-1'>
+            <div class='flex-1 text-xs' >
+              <For each={path().slice(0, -1)}>
+                {item => <button onClick={() => setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span>{' / '}</button>}
               </For>
             </div>
             <UndoRedo root={root()} />
+            <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
           </div>
         </div>
         <For each={path()}>
-          {(item,index) => <Show when={index() === path().length -1 }><RootSectionView node={item} setRoot={setRoot} setCalendar={setCalendar}/></Show>}
+          {(item, index) => <Show when={index() === path().length - 1}><RootSectionView node={item} setRoot={setRoot} setCalendar={setCalendar} /></Show>}
         </For>
 
 
@@ -151,8 +151,8 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
 
   return (
     <>
-      <div  class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
-        <div class='fixed top-5 w-full bg-white'>
+      <div class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div class='sticky top-5 w-full bg-white'>
 
           <div class=' m-auto  w-full flex border-b border-t'>
             <div class='m-auto max-w-prose flex w-full'>
@@ -163,7 +163,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
             </div>
           </div>
         </div>
-        <div class=' mt-11 m-auto max-w-prose w-full flex flex-col'>
+        <div class=' m-auto max-w-prose w-full flex flex-col'>
           <Show when={children().length > 0 || content().length > 0}>
             <div class="flex flex-col" style=''>
               <For each={content()}>
