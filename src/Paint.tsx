@@ -52,7 +52,6 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
   if (!props.node.has('zoom')) props.node.set('zoom', 1)
   if (!props.node.has('aspect')) props.node.set('aspect', 1)
 
-  const undoManager = new Y.UndoManager(props.node)
 
   const [color, setColor] = createSignal('black')
   const [fill, setFill] = createSignal(false)
@@ -174,7 +173,7 @@ export const Paint: Component<{ node: Y.Map<any>, state: EditorState, undoManage
         <ModalFull show={show()} setShow={setShow}>
           <div class='flex flex-col  gap-2 m-auto h-screen w-screen justify-between' onClick={e => e.stopPropagation()} >
             <div class='flex justify-between p-1'>
-              <UndoRedo undoManager={undoManager} />
+              <UndoRedo root={props.node} />
               <input type="number" min="5" max="100" value={strokeWidth()} onInput={(e) => setStrokeWidth(parseInt(e.target.value))} />
               <input type="color" value={color()} onInput={(e) => setColor(e.target.value)} onPointerDown={(e) => e.stopPropagation()} />
               <button classList={{ 'opacity-25': erase() }} onClick={() => setErase(e => !e)}><Icons.Pencil /></button>
