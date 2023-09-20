@@ -90,7 +90,7 @@ export const AppView: Component = () => {
     modified = false
   }
 
-  // setInterval(() => sync(false), INTERVAL)
+  setInterval(() => sync(false), INTERVAL)
 
 
   let e: HTMLInputElement
@@ -185,7 +185,6 @@ export const AppView: Component = () => {
                   <For each={docs()}>
                     {([id, value]: [string, Y.Map<any>]) => <button onClick={() => setDocData({ id, ...value.toJSON() })}>{id}</button>}
                   </For>
-                  <button onClick={() => { }}>New Notebook</button>
                 </div>
               </Show>
             </Show>
