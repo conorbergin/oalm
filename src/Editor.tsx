@@ -74,24 +74,15 @@ export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean>
   const [calendar, setCalendar] = createSignal(false)
 
   const path = () => buildPath(root())
+
   console.log(path())
 
   return (
     <Show when={calendar()} fallback={
       <>
-        <div class='sticky top-0 h-5 w-full bg-white'>
-          <div class='m-auto w-full max-w-prose flex gap-1 p-1'>
-            <div class='flex-1 text-xs' >
-              <For each={path().slice(0, -1)}>
-                {item => <button onClick={() => setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span>{' / '}</button>}
-              </For>
-            </div>
-            <UndoRedo root={root()} />
-            <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
-          </div>
-        </div>
+
         <For each={path()}>
-          {(item, index) => <Show when={index() === path().length - 1}><RootSectionView node={item} setRoot={setRoot} setCalendar={setCalendar} /></Show>}
+          {(item, index) => <Show when={index() === path().length - 1}><RootSectionView node={item} setRoot={setRoot} setCalendar={setCalendar} setAccountView={props.setAccountView} /></Show>}
         </For>
 
 
@@ -105,7 +96,7 @@ export const EditorView: Component<{ doc: Y.Doc, setAccountView: Setter<boolean>
   )
 }
 
-export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Setter<Y.Doc | Y.Map<any>>, setCalendar: Setter<boolean> }> = (props) => {
+export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Setter<Y.Doc | Y.Map<any>>, setCalendar: Setter<boolean>, setAccountView: Setter<boolean> }> = (props) => {
   console.log('reload')
   let state = new EditorState()
   let selection = {
@@ -122,6 +113,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
 
   const [palette, setPalette] = createSignal(false)
 
+  const path = () => buildPath(props.node)
 
   const handleBeforeInput = (e) => {
     beforeinputHandler(e, selection)
@@ -151,19 +143,32 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
 
   return (
     <>
-      <div class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
-        <div class='sticky top-5 w-full bg-white'>
 
-          <div class=' m-auto  w-full flex border-b border-t'>
-            <div class='m-auto max-w-prose flex w-full'>
-              <button class=' border-l border-r' onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
-              <div class='font-bold text-xl '>
-                <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
+
+
+      <div class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
+        <div class='sticky top-0 w-full bg-white border-b grid grid-cols-[1fr_min(100%,70ch)_1fr]'>
+
+              <div contentEditable={false} class='flex gap-1 col-start-2'>
+
+                <div class=' text-xs flex whitespace-nowrap overflow-x-auto  flex-1' >
+                  <For each={path().slice(0, -1)}>
+                    {item => <button onClick={() => props.setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span>{' / '}</button>}
+                  </For>
+                </div>
+                <UndoRedo root={props.node} />
+                <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
               </div>
-            </div>
+              <div class='col-start-1 col-end-4 border-b'/>
+              <div class='flex col-start-2'>
+
+                <button class='' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
+                <div class='font-bold text-xl '>
+                  <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
+                </div>
           </div>
         </div>
-        <div class=' m-auto max-w-prose w-full flex flex-col'>
+        <div class=' m-auto max-w-[70ch] w-full flex flex-col'>
           <Show when={children().length > 0 || content().length > 0}>
             <div class="flex flex-col" style=''>
               <For each={content()}>
