@@ -28,6 +28,34 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
     return [m, f]
 }
 
+
+export const getSection = (node: Y.AbstractType<any>): Y.Map<any> => {
+    console.log(node.toJSON())
+    if (node instanceof Y.Map && node.has(CHILDREN)) {
+        return node
+    } else if (node.parent) {
+        return getSection(node.parent)
+    } else {
+        throw new Error('No section found')
+    }
+}
+
+export const addSection = (s: Sel) => {
+    let p = getSection(s.node)
+    let [n, f] = createSection('')
+    s.node = f
+    s.offset = 0
+    p.get(CHILDREN).unshift([n])
+}
+
+export const addSibling = (s: Sel) => {
+    let p = getSection(s.node)
+    let [n, f] = createSection('')
+    s.node = f
+    s.offset = 0
+    p.parent.insert(p.parent.toArray().indexOf(p.parent), [n])
+}
+
 // export const createList = (text: string): [Y.Map<any>, Y.Text] => {
 //     const m = new Y.Map()
 //     const [p, c] = createParagraph('')
@@ -63,151 +91,6 @@ export const insertText = (s: Sel, text: string) => {
                 s.node.parent.insert(index + 1, ylines)
             }
         })
-    }
-}
-
-export const getSection = (node: Y.AbstractType<any>): Y.Map<any> => {
-    console.log(node.toJSON())
-    if (node instanceof Y.Map && node.has(CHILDREN)) {
-        return node
-    } else if (node.parent) {
-        return getSection(node.parent)
-    } else {
-        throw new Error('No section found')
-    }
-}
-
-export const addSection = (s: Sel) => {
-    let p = getSection(s.node)
-    let [n, f] = createSection('')
-    s.node = f
-    s.offset = 0
-    p.get(CHILDREN).unshift([n])
-}
-
-export const addSibling = (s: Sel) => {
-    let p = getSection(s.node)
-    let [n, f] = createSection('')
-    s.node = f
-    s.offset = 0
-    p.parent.insert(p.parent.toArray().indexOf(p.parent), [n])
-}
-
-export const deleteSection = (s: Sel) => {
-    let node = getSection(s.node)
-    if (!node.parent) return
-    node.parent.delete(node.parent.toArray().indexOf(node))
-}
-
-export const deleteNode = (node) => {
-    if (node.parent instanceof Y.Array) {
-        let index = node.parent.toArray().indexOf(node)
-        if (index !== -1) {
-            node.parent.delete(index)
-        }
-    }
-}
-
-export const deleteContent = (s: Sel) => {
-    if (s.focus) {
-        deleteSelection(s)
-    } else if (s.offset === s.node.length) {
-        let p = s.node.parent!
-
-        switch (true) {
-            case p.has(TEXT):
-                if (p.has(CONTENT) && p.get(CONTENT).length > 0) {
-
-                    let textafter = p.get(CONTENT).get(0).get(TEXT).toString()
-                    let c = p.get(CONTENT).get(0).get(CONTENT).clone().toArray()
-                    p.doc.transact(() => {
-                        s.node.insert(s.node.length, textafter)
-                        p.get(CONTENT).delete(0, 1)
-                        c.length > 0 && p.get(CONTENT).unshift(c)
-                    })
-                } else if (!p.has(CHILDREN)) {
-                    let i = p.parent.toArray().indexOf(p)
-                    if (i === p.parent.length - 1) return
-                    let next = p.parent.get(i + 1)
-                    let textbefore = s.node.toString()
-                    s.node = next.get(TEXT)
-                    s.offset = textbefore.length
-                    next.doc?.transact(() => {
-                        next.parent.delete(i)
-                        next.get(TEXT).insert(0, textbefore)
-                    })
-                }
-                return
-            default:
-                return
-        }
-
-    } else {
-        s.node.delete(s.offset, 1)
-    }
-}
-
-const getLastContent = (node: Y.Map<any>): Y.Text => {
-    switch (true) {
-        case node.has(TEXT):
-            if (node.get(CHILDREN) && node.get(CHILDREN).length > 0) {
-                return getLastContent(node.get(CHILDREN).get(node.get(CHILDREN).length - 1))
-            } else if (node.get(CONTENT) && node.get(CONTENT).length > 0) {
-                return getLastContent(node.get(CONTENT).get(node.get(CONTENT).length - 1))
-            } else {
-                return node.get(TEXT)
-            }
-        case node.has('header'):
-            let lastRow = node.get('items').get(node.get('items').length - 1)
-            let lastCell = node.get('header').get(node.get('header').length - 1)
-            return lastRow.get(lastCell.get('id'))
-        default:
-            throw new Error('invalid node', node.toJSON())
-    }
-}
-
-const expandSelBackwards = (s: Sel) => {
-    if (s.offset === 0) {
-        if (s.node === s.node.doc!.getText(ROOT_TEXT)) { return }
-        if (s.node.parent instanceof Y.Map && s.node.parent.parent instanceof Y.Array) {
-            if (s.node.parent.has(CHILDREN)) {
-
-            } else {
-
-            }
-
-        }
-
-    } else {
-        if (!s.focus) {
-            s.focus = { node: s.node, offset: s.offset }
-        }
-        s.offset--
-    }
-}
-
-const moveSelBackward = (s: Sel) => {
-    if (s.offset === 0) {
-        let arr = s.node.parent!.parent!.toArray()
-        let index = arr.indexOf(s.node.parent!)
-        if (index === 0) {
-            s.node = s.node.parent!.parent!.parent.get(TEXT)
-            s.offset = s.node.length
-        } else {
-            s.node = getLastContent(arr[index - 1])
-            s.offset = s.node.length
-        }
-    } else {
-        s.offset--
-    }
-}
-
-const deleteContentBackward = (s: Sel) => {
-    if (s.focus) {
-        deleteSelection(s)
-    } else {
-        moveSelBackward(s)
-        deleteContent(s)
     }
 }
 
@@ -402,12 +285,14 @@ export const beforeinputHandler = (e: InputEvent, s: Sel) => {
 
         case 'deleteContentBackward':
         case 'deleteWordBackward':
-            return deleteContentBackward(s)
+            expandSelectionBackward(s)
+            deleteSelection(s)
+            return
 
         case 'deleteContentForward':
         case 'deleteWordForward':
         case 'deleteContent':
-            return deleteContent(s)
+            return
 
         case 'insertParagraph':
             return split(s)
