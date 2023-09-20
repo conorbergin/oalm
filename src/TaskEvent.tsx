@@ -82,7 +82,7 @@ const dateString = (t: string, u?: string) => {
 export const TaskEventString: Component<{ taskEvent: TaskEvent }> = (props) => {
   return (
     <Switch>
-      <Match when={props.taskEvent.end?.date && props.taskEvent.begin?.date}>{dateString(props.taskEvent.begin!.date!, props.taskEvent.end!.date!)}</Match>
+      <Match when={props.taskEvent.end?.date && props.taskEvent.begin?.date}><span class='text-green-600'>{dateString(props.taskEvent.begin!.date!, props.taskEvent.end!.date!)}</span></Match>
       <Match when={true}>
         <Show when={props.taskEvent.begin?.duration}><span class='text-orange-600'>{durationString(props.taskEvent.begin!.duration!)} </span></Show>
         <Show when={props.taskEvent.end?.date}>{dateString(props.taskEvent.end!.date!)}</Show>

@@ -29,7 +29,7 @@ const validPassword = (p: string) => p.length > PASSWORD_TOO_SHORT
 
 export const App: Component = () => {
   return (
-    <ErrorBoundary fallback={e => <div>Fatal Error: + {e}</div>}>
+    <ErrorBoundary fallback={e => <div>Fatal Error: {e}</div>}>
       <AppView />
     </ErrorBoundary>
   )
@@ -60,7 +60,7 @@ export const AppView: Component = () => {
 
   let ydoc = new Y.Doc()
   let kcdoc = new Y.Doc()
-  let persist = false
+  let persist = true
   let modified = false
   const counters = new Map()
 
@@ -73,7 +73,13 @@ export const AppView: Component = () => {
   const [doc, setDoc] = createSignal<null | Y.Doc>(null)
 
   getLocalUserData().then(u => setUserData(u))
-  console.log(localStorage.getItem('oalm-id'))
+  const lastOpened = localStorage.getItem('oalm-last-opened')
+  if (lastOpened && lastOpened !== 'undefined') {
+    const jsn = JSON.parse(lastOpened)
+    if (jsn) {
+      setDocData(jsn)
+    } else { console.log('failed to parse json')}
+  }
 
 
   const sync = (force:boolean) => {
@@ -84,15 +90,11 @@ export const AppView: Component = () => {
     modified = false
   }
 
-  setInterval(() => sync(false), INTERVAL)
-
-  // let idbprov = new IndexeddbPersistence(user()!.id, kcdoc)
-
+  // setInterval(() => sync(false), INTERVAL)
 
 
   let e: HTMLInputElement
   let p: HTMLInputElement
-  let c: HTMLInputElement
   const handleSubmit = async () => {
     if (!maybeValidEmail(e.value)) {
       setMessage('Invalid Email')
@@ -102,7 +104,6 @@ export const AppView: Component = () => {
     console.log(user)
     const resp = await authenticate(user)
     if (resp.status === 200) {
-      persist = c.value === 'on'
       setUserData(user)
       setLocalUserData(user)
     } else if (resp.status === 404) {
@@ -129,13 +130,10 @@ export const AppView: Component = () => {
     if (user) {
       if (persist) {
         const indexeddbProvider = new IndexeddbPersistence(user.userid,kcdoc)
+        // await indexeddbProvider.whenSynced
       }
       kcdoc.getMap('oalm-keychain').observe(f)
       await syncKeychain(kcdoc, user, counters, true, false)
-      const l = localStorage.getItem('oalm-last-opened')
-      if (l) {
-        setDoc(l,...kcdoc.getMap('oalm-keychain').get(l).toJSON())
-      }
     }
   })
 
@@ -144,8 +142,10 @@ export const AppView: Component = () => {
     ydoc = new Y.Doc()
     const d = docData()
     if (d) {
+      console.log('new doc')
       if (persist) {
-        localStorage.setItem('oalm-last-opened',d.id)
+        console.log('persist')
+        localStorage.setItem('oalm-last-opened',JSON.stringify(d))
         const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
         await indexeddbProvider.whenSynced
         syncDoc(ydoc, d, userData()!, counters,true, false)
@@ -159,12 +159,7 @@ export const AppView: Component = () => {
       const indexeddbProvider = new IndexeddbPersistence('default', ydoc)
       await indexeddbProvider.whenSynced
     }
-    console.log(ydoc.toJSON())
-    console.log(ydoc.getText(ROOT_TEXT).toJSON())
-    console.log(ydoc.getArray(ROOT_CONTENT).toJSON())
-    console.log(ydoc.getArray(ROOT_CHILDREN).toJSON())
     setDoc(null)
-
     setDoc(ydoc)
   })
 
@@ -178,13 +173,12 @@ export const AppView: Component = () => {
               <div class='flex flex-col gap-2 p-1 pt-2'>
                 <input class="p-1 border" ref={e} type="email" placeholder="email" />
                 <input class="p-1 border" ref={p} type="password" placeholder="password" />
-                <div class="flex gap-2"><input ref={c} type="checkbox" />Save details locally (I own this computer)</div>
                 <button onClick={handleSubmit}>Sign In or Register</button>
                 <div class='text-orange-700'>{message()}</div>
               </div>
             }>
               <p>{userData()!.userid}</p>
-              <button onClick={() => {setUserData(null);localStorage.clear()}}>Sign Out</button>
+              <button onClick={() => {setUserData(null);setDocData(null);localStorage.clear()}}>Sign Out</button>
               <Show when={docs()} fallback="waiting for keychain ...">
                 <div class="flex  flex-col justify-center gap-2">
                   <button onClick={() => sync(true)}>Sync</button>
