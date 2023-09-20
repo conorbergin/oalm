@@ -74,11 +74,15 @@ export const AppView: Component = () => {
 
   getLocalUserData().then(u => setUserData(u))
   const lastOpened = localStorage.getItem('oalm-last-opened')
-  if (lastOpened && lastOpened !== 'undefined') {
-    const jsn = JSON.parse(lastOpened)
-    if (jsn) {
-      setDocData(jsn)
-    } else { console.log('failed to parse json')}
+  if (lastOpened) {
+    try {
+      const jsn = JSON.parse(lastOpened)
+      if (jsn) {
+        setDocData(jsn)
+      } 
+    } catch {
+      localStorage.clear()
+    }
   }
 
 
