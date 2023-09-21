@@ -35,24 +35,24 @@ export const App: Component = () => {
   )
 }
 
-const getLocalUserData = async ():Promise<UserData | null> => {
+const getLocalUserData = async (): Promise<UserData | null> => {
   const userid = localStorage.getItem('oalm-id')
   const key = localStorage.getItem('oalm-key')
   const masterHash = localStorage.getItem('oalm-hash')
-  if (userid && key && masterHash ) {
+  if (userid && key && masterHash) {
     console.log('got local user data')
     const masterKey = await string2key(key)
-    return {userid, masterKey, masterHash}
+    return { userid, masterKey, masterHash }
   } else {
     console.log('failed to get local user data')
     return null
   }
 }
 
-const setLocalUserData = async (u:UserData) => {
-  localStorage.setItem('oalm-id',u.userid)
-  localStorage.setItem('oalm-key',await key2string(u.masterKey))
-  localStorage.setItem('oalm-hash',u.masterHash)
+const setLocalUserData = async (u: UserData) => {
+  localStorage.setItem('oalm-id', u.userid)
+  localStorage.setItem('oalm-key', await key2string(u.masterKey))
+  localStorage.setItem('oalm-hash', u.masterHash)
 }
 
 
@@ -60,8 +60,7 @@ export const AppView: Component = () => {
 
   let ydoc = new Y.Doc()
   let kcdoc = new Y.Doc()
-  let persist = true
-  let modified = false
+  let modified = true
   const counters = new Map()
 
   const [docData, setDocData] = createSignal<null | DocData>(null)
@@ -79,19 +78,18 @@ export const AppView: Component = () => {
       const jsn = JSON.parse(lastOpened)
       if (jsn) {
         setDocData(jsn)
-      } 
+      }
     } catch {
       localStorage.clear()
     }
   }
 
 
-  const sync = (force:boolean) => {
+  const sync = (force: boolean) => {
     const u = userData()
     const d = docData()
-    if (u) { syncKeychain(kcdoc, u, counters,force, modified) }
-    if (d && u) { syncDoc(ydoc, d, u, counters,force, modified) }
-    modified = false
+    if (u) { syncKeychain(kcdoc, u, counters, force, modified) }
+    if (d && u) { syncDoc(ydoc, d, u, counters, force, modified) }
   }
 
   setInterval(() => sync(false), INTERVAL)
@@ -125,17 +123,14 @@ export const AppView: Component = () => {
   const f = () => {
     const arr = Array.from(kcdoc.getMap('oalm-keychain').entries())
     setDocs(arr)
-    modified = true
   }
 
 
   createEffect(async () => {
     const user = userData()
     if (user) {
-      if (persist) {
-        const indexeddbProvider = new IndexeddbPersistence(user.userid,kcdoc)
-        // await indexeddbProvider.whenSynced
-      }
+      const indexeddbProvider = new IndexeddbPersistence(user.userid, kcdoc)
+      // await indexeddbProvider.whenSynced
       kcdoc.getMap('oalm-keychain').observe(f)
       await syncKeychain(kcdoc, user, counters, true, false)
     }
@@ -147,18 +142,12 @@ export const AppView: Component = () => {
     const d = docData()
     if (d) {
       console.log('new doc')
-      if (persist) {
-        console.log('persist')
-        localStorage.setItem('oalm-last-opened',JSON.stringify(d))
-        const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
-        await indexeddbProvider.whenSynced
-        syncDoc(ydoc, d, userData()!, counters,true, false)
-      } else {
-        await syncDoc(ydoc, d, userData()!, counters,true, false)
-      }
-      ydoc.getMap('01').observeDeep(() => modified = true)
-      ydoc.getMap('02').observeDeep(() => modified = true)
-      ydoc.getMap('03').observeDeep(() => modified = true)
+      console.log('persist')
+      localStorage.setItem('oalm-last-opened', JSON.stringify(d))
+      const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
+      const webrtcProvider = new WebrtcProvider(d.id,ydoc)
+      await indexeddbProvider.whenSynced
+      syncDoc(ydoc, d, userData()!, counters, true, false)
     } else {
       const indexeddbProvider = new IndexeddbPersistence('default', ydoc)
       await indexeddbProvider.whenSynced
@@ -182,7 +171,7 @@ export const AppView: Component = () => {
               </div>
             }>
               <p>{userData()!.userid}</p>
-              <button onClick={() => {setUserData(null);setDocData(null);localStorage.clear()}}>Sign Out</button>
+              <button onClick={() => { setUserData(null); setDocData(null); localStorage.clear() }}>Sign Out</button>
               <Show when={docs()} fallback="waiting for keychain ...">
                 <div class="flex  flex-col justify-center gap-2">
                   <button onClick={() => sync(true)}>Sync</button>

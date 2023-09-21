@@ -147,7 +147,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
 
 
       <div class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
-        <div class='sticky top-0 w-full bg-white border-b grid grid-cols-[1fr_min(100%,70ch)_1fr]'>
+        <div class='sticky top-0 w-full bg-white border-b  grid grid-cols-[1fr_min(100%,70ch)_1fr]'>
 
               <div contentEditable={false} class='flex gap-1 col-start-2 pl-1 pr-1'>
 
@@ -159,7 +159,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
                 <UndoRedo root={props.node} />
                 <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
               </div>
-              <div contentEditable={false} class='col-start-1 col-end-4 border-b'/>
+              <div contentEditable={false} class='col-start-1 col-end-4 border-b '/>
               <div class='flex col-start-2'>
 
                 <button class='w-4 border-l border-r' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}>+</button>
@@ -243,7 +243,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
       </Modal>
       <div class=' flex '>
         <div contentEditable={false} class='flex'>
-          <div class=" flex touch-none bg-white w-4 border border-gray-400" onpointerdown={handleDrag} >
+          <div class=" flex touch-none  w-4 border bg-white" onpointerdown={handleDrag} >
             {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
           </div>
         </div>

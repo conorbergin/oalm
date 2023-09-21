@@ -4,33 +4,11 @@ import * as Y from 'yjs'
 
 import { Temporal } from '@js-temporal/polyfill';
 import { Dialog } from "./Dialog";
-import { Codemirror } from "./Codemirror";
 import { ySignal } from "./utils";
 import { DateSelector, TaskEventPicker, TaskEvent } from "./TaskEvent";
 import { CHILDREN, ROOT_CHILDREN, TEXT } from "./input";
 
 const TASKEVENT = '10'
-
-const pack = (a: Array<{ start: Temporal.PlainDate, end: Temporal.PlainDate, col: number }>) => {
-    let b: number[] = []
-    a.sort((x, y) => Temporal.PlainDate.compare(x.start, y.start))
-    let last = 0
-    a.forEach((d, i) => {
-        for (let j = 0; j < b.length; j++) {
-            if (b[j] === 0) {
-                d.col = j
-                last = d.start.dayOfYear
-                b[j]
-            }
-        }
-        last = d.start.dayOfYear
-        // d.col = 
-    })
-}
-const extractDate = (node: Y.Map<any>) => {
-    let n = node.get('~')
-    return { type: n.type, start: Temporal.PlainDate.from(n.begin), end: Temporal.PlainDate.from(n.end), parent: node }
-}
 
 
 export const CalendarView: Component<{ doc: Y.Doc }> = (props) => {
@@ -39,7 +17,6 @@ export const CalendarView: Component<{ doc: Y.Doc }> = (props) => {
     const currentYear = Temporal.Now.plainDateISO().year
 
     const [dates, setDates] = createSignal([])
-    const [events, setEvents] = createSignal([])
     const now = Temporal.Now.plainDateISO()
     const startDate = now.subtract({ days:(now.dayOfWeek - 1),weeks:N_WEEKS_PAST})
     const endDate = startDate.add({weeks:N_WEEKS})
