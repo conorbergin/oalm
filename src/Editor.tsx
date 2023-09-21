@@ -162,7 +162,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
               <div contentEditable={false} class='col-start-1 col-end-4 border-b'/>
               <div class='flex col-start-2'>
 
-                <button class='' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}><div class='w-3' >+</div></button>
+                <button class='w-4 border-l border-r' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}>+</button>
                 <div class='font-bold text-xl '>
                   <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
                 </div>
@@ -243,7 +243,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
       </Modal>
       <div class=' flex '>
         <div contentEditable={false} class='flex'>
-          <div class=" flex touch-none bg-white w-4 border" onpointerdown={handleDrag} >
+          <div class=" flex touch-none bg-white w-4 border border-gray-400" onpointerdown={handleDrag} >
             {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
           </div>
         </div>
@@ -299,9 +299,8 @@ export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: Edi
         </div>
       </Modal>
       <div ref={r} class="flex content" style='margin-top:-1px'>
-        <div contentEditable={false} class='bg-white border'>
-          <div class="font-bold text-gray-400 touch-none  h-full flex w-3" onpointerdown={handleDrag}>
-            {/* <HandleIcon2 last={false} section={false} sprogs={false} /> */}
+        <div contentEditable={false} class='bg-white border font-bold touch-none  w-4' onpointerdown={handleDrag}>
+          <div >
           </div>
         </div>
         <div class='flex-1'>

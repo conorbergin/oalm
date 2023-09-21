@@ -227,7 +227,8 @@ const split = (s: Sel) => {
                     const [section, location] = createSection(paragraph.toString())
                     s.node = location
                     s.offset = 0
-                    node.parent.parent.parent.insert(parent_index, [section])
+                    node.parent.delete(index)
+                    node.parent.parent.parent.insert(parent_index+1, [section])
                 } else {
                     // list 
                     return
