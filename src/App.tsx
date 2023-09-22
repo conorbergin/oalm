@@ -145,7 +145,7 @@ export const AppView: Component = () => {
       console.log('persist')
       localStorage.setItem('oalm-last-opened', JSON.stringify(d))
       const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
-      const webrtcProvider = new WebrtcProvider(d.id,ydoc)
+      const webrtcProvider = new WebrtcProvider(d.id,ydoc,{signaling:["ws://151.236.219.203:4444"]})
       await indexeddbProvider.whenSynced
       syncDoc(ydoc, d, userData()!, counters, true, false)
     } else {
