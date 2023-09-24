@@ -28,6 +28,13 @@ export const createSection = (text: string): [Y.Map<any>, Y.Text] => {
     return [m, f]
 }
 
+export const createList = (text: string) : [Y.Map<any>, Y.Text] => {
+    const m = new Y.Map()
+    const f = new Y.Text
+    m.set(CONTENT,Y.Array.from([f]))
+    return [m,f]
+}
+
 
 export const getSection = (node: Y.AbstractType<any>): Y.Map<any> => {
     console.log(node.toJSON())
@@ -94,11 +101,11 @@ export const insertText = (s: Sel, text: string) => {
     }
 }
 
-const findBranchBefore = (m : Y.Map<any>) => {
+const findBranchBefore = (m: Y.Map<any>) => {
     if (m.parent instanceof Y.Array) {
         const index = m.parent.toArray().indexOf(m)
         if (index > 0) {
-            return m.parent.get(index-1)
+            return m.parent.get(index - 1)
         } else {
             if (m.parent === m.doc?.getArray(ROOT_CHILDREN)) {
                 const l = m.doc.getArray(ROOT_CHILDREN).length
@@ -108,20 +115,20 @@ const findBranchBefore = (m : Y.Map<any>) => {
     }
 }
 
-const expandSelectionBackward = (s:Sel) => {
-    if (!s.node.doc) { throw new Error('no doc')}
+const expandSelectionBackward = (s: Sel) => {
+    if (!s.node.doc) { throw new Error('no doc') }
     if (!s.focus) {
-        s.focus = {node:s.node,offset:s.offset}
+        s.focus = { node: s.node, offset: s.offset }
     }
     if (s.offset !== 0) {
         s.offset--
     } else if (s.node.parent instanceof Y.Array) {
         const index = s.node.parent.toArray().indexOf(s.node)
         if (index > 0) {
-            s.node = s.node.parent.get(index-1)
+            s.node = s.node.parent.get(index - 1)
             s.offset = s.node.length
         } else if (s.node.parent.parent instanceof Y.Map) {
-            s.node =  s.node.parent.parent.get(TEXT)
+            s.node = s.node.parent.parent.get(TEXT)
             s.offset = s.node.length
         } else if (s.node.parent === s.node.doc.getArray(ROOT_CONTENT)) {
             s.node = s.node.doc.getText(ROOT_TEXT)
@@ -130,7 +137,7 @@ const expandSelectionBackward = (s:Sel) => {
             throw new Error('unreachable')
         }
     } else if (s.node.parent instanceof Y.Map) {
-        
+
 
     } else {
         throw new Error('unreachable')
@@ -160,20 +167,20 @@ const deleteSelection = (s: Sel) => {
     s.focus = null
     doc.transact(() => {
         if (start === end) {
-            start.delete(s_offset,e_offset - s_offset)
+            start.delete(s_offset, e_offset - s_offset)
         } else if (start.parent instanceof Y.Array && start.parent === end.parent) {
             // both in content 
             const s_index = start.parent.toArray().indexOf(start)
             const e_index = start.parent.toArray().indexOf(end)
-            start.delete(s_offset,start.length - s_offset)
-            start.parent.delete(s_index+1,e_index - s_index)
-            start.insert(s_offset,textafter)
+            start.delete(s_offset, start.length - s_offset)
+            start.parent.delete(s_index + 1, e_index - s_index)
+            start.insert(s_offset, textafter)
         } else if (end.parent instanceof Y.Array && ((start.parent && start.parent === end.parent.parent) || start === doc.getText(ROOT_TEXT) && end.parent === doc.getArray(ROOT_CONTENT))) {
             // starts in heading and ends in content
             const e_index = end.parent.toArray().indexOf(end)
-            start.delete(s_offset,start.length-s_offset)
-            end.parent.delete(0,e_index+1)
-            start.insert(s_offset,textafter)
+            start.delete(s_offset, start.length - s_offset)
+            end.parent.delete(0, e_index + 1)
+            start.insert(s_offset, textafter)
         } else if (intersection) {
             const s_path = start_path.slice(0, start_path.indexOf(intersection))
             const e_path = end_path.slice(0, end_path.indexOf(intersection))
@@ -224,14 +231,18 @@ const split = (s: Sel) => {
             if (node.parent.parent instanceof Y.Map && node.parent.parent.parent instanceof Y.Array) {
                 let parent_index = node.parent.parent.parent.toArray().indexOf(node.parent.parent)
                 if (node.parent.parent.has(CHILDREN)) {
+                    //section
                     const [section, location] = createSection(paragraph.toString())
                     s.node = location
                     s.offset = 0
                     node.parent.delete(index)
-                    node.parent.parent.parent.insert(parent_index+1, [section])
+                    node.parent.parent.parent.insert(parent_index + 1, [section])
                 } else {
-                    // list 
-                    return
+                    // list
+                    s.node = new Y.Text()
+                    s.offset = 0
+                    node.parent.delete(index)
+                    node.parent.parent.parent.insert(parent_index + 1,[s.node])
                 }
             }
         } else {

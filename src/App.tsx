@@ -17,6 +17,7 @@ import { EditorView } from "./Editor";
 import * as Icons from './Icons'
 import { ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, TEXT } from './input'
 import { local } from 'd3-selection'
+import { EncryptedWebsocketProvider } from './provider'
 
 // https://stackoverflow.com/a/9204568
 const maybeValidEmail = (e: string) => e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
@@ -92,7 +93,7 @@ export const AppView: Component = () => {
     if (d && u) { syncDoc(ydoc, d, u, counters, force, modified) }
   }
 
-  setInterval(() => sync(false), INTERVAL)
+  // setInterval(() => sync(false), INTERVAL)
 
 
   let e: HTMLInputElement
@@ -141,13 +142,12 @@ export const AppView: Component = () => {
     ydoc = new Y.Doc()
     const d = docData()
     if (d) {
-      console.log('new doc')
-      console.log('persist')
       localStorage.setItem('oalm-last-opened', JSON.stringify(d))
       const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
+      const bProvider = new EncryptedWebsocketProvider('',d.id,ydoc)
       // const webrtcProvider = new WebrtcProvider(d.id,ydoc,{signaling:["ws://151.236.219.203:4444"]})
       await indexeddbProvider.whenSynced
-      syncDoc(ydoc, d, userData()!, counters, true, false)
+      // syncDoc(ydoc, d, userData()!, counters, true, false)
     } else {
       const indexeddbProvider = new IndexeddbPersistence('default', ydoc)
       await indexeddbProvider.whenSynced

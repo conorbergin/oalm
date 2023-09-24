@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { Component, onCleanup, createSignal, For, Setter, Show, Switch, Match, onMount, on, createEffect, Accessor, ErrorBoundary, createRenderEffect } from 'solid-js';
-import { TEXT, CONTENT, CHILDREN, ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, beforeinputHandler, createSection } from './input';
+import { TEXT, CONTENT, CHILDREN, ROOT_TEXT, ROOT_CHILDREN, ROOT_CONTENT, beforeinputHandler, createSection, createList } from './input';
 import { Sel, selectionFromDom, selectionToDom } from './selection';
 // import { Sequencer, newPiece } from './Sequencer';
 import { TableView, newTable } from './Table';
@@ -8,6 +8,7 @@ import { Embed, createEmbed } from './Embed';
 import { ParagraphView, TextView } from './Text';
 import { drag } from './drag'
 import * as Icons from './Icons'
+
 
 import { Paint, createPaint } from './Paint';
 
@@ -19,6 +20,8 @@ export const [lock, setLock] = createSignal(false)
 import { TASKEVENT, MaybeDT, TaskEventPicker, TaskEventString } from './TaskEvent';
 import { Dialog, Modal, ModalFull } from './Dialog';
 import { CalendarView } from './Calendar';
+import { exportMD } from './exportMD';
+
 
 export interface EditorState {
   drag: Map<HTMLElement, Y.AbstractType<any>>
@@ -118,7 +121,7 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
   const handleBeforeInput = (e) => {
     beforeinputHandler(e, selection)
     selectionToDom(selection, state.domFromDoc)
-    console.log(state.domFromDoc.get(selection.node))
+    // console.log(state.domFromDoc.get(selection.node))
     state.domFromDoc.get(selection.node)?.scrollIntoView({ block: 'nearest', inline: 'start' })
   }
 
@@ -132,6 +135,16 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
       default:
         break
     }
+  }
+
+  const replacer = (selection:Sel,builder:(_:string) => [Y.Map<any>,Y.Text]) => {
+    const l = builder('')
+    yReplaceInArray(selection.node, l[0])
+    selection.node = l[1]
+    selection.offset = 0
+    selection.focus = null
+    selectionToDom(selection, state.domFromDoc)
+    setPalette(false)
   }
 
   const handleKeyDown = (e) => {
@@ -149,23 +162,23 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
       <div class=" editor flex flex-col " contenteditable={!lock()} spellcheck={false} onKeyDown={handleKeyDown} onBeforeInput={handleBeforeInput} onPointerUp={() => { selectionFromDom(selection, state.docFromDom) }}>
         <div class='sticky top-0 w-full bg-white border-b  grid grid-cols-[1fr_min(100%,70ch)_1fr]'>
 
-              <div contentEditable={false} class='flex gap-1 col-start-2 pl-1 pr-1'>
+          <div contentEditable={false} class='flex gap-1 col-start-2 pl-1 pr-1'>
 
-                <div class=' text-xs flex whitespace-nowrap overflow-x-auto  flex-1' >
-                  <For each={path().slice(0, -1)}>
-                    {item => <button onClick={() => props.setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span>{' / '}</button>}
-                  </For>
-                </div>
-                <UndoRedo root={props.node} />
-                <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
-              </div>
-              <div contentEditable={false} class='col-start-1 col-end-4 border-b '/>
-              <div class='flex col-start-2'>
+            <div class=' text-xs flex whitespace-nowrap overflow-x-auto  flex-1' >
+              <For each={path().slice(0, -1)}>
+                {item => <button onClick={() => props.setRoot(item)}><span class='underline'>{item instanceof Y.Doc ? item.getText(ROOT_TEXT).toString() : item.get(TEXT).toString()}</span>{' / '}</button>}
+              </For>
+            </div>
+            <UndoRedo root={props.node} />
+            <button class='text-xs underline' onClick={() => props.setAccountView(true)}>account</button>
+          </div>
+          <div contentEditable={false} class='col-start-1 col-end-4 border-b ' />
+          <div class='flex col-start-2'>
 
-                <button class='w-4 border-l border-r' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}>+</button>
-                <div class='font-bold text-xl '>
-                  <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
-                </div>
+            <button class='w-4 border-l border-r bg-gray-100' contentEditable={false} onClick={() => props.node instanceof Y.Doc ? props.node.getArray(ROOT_CHILDREN).unshift([createSection('heading')[0]]) : props.node.get(CHILDREN).unshift([createSection('heading')[0]])}></button>
+            <div class='font-bold text-xl '>
+              <TextView node={props.node instanceof Y.Doc ? props.node.getText(ROOT_TEXT) : props.node.get(TEXT)} state={state} tag={`h1`} />
+            </div>
           </div>
         </div>
         <div class=' m-auto max-w-[70ch] w-full flex flex-col'>
@@ -183,9 +196,9 @@ export const RootSectionView: Component<{ node: Y.Map<any> | Y.Doc, setRoot: Set
       </div >
       <Modal show={palette()} setShow={setPalette}>
         <div class='flex flex-col'>
-          <button onClick={() => { yReplaceInArray(selection.node, createPaint()) }}>Paint</button>
-          <button onClick={() => { yReplaceInArray(selection.node, createEmbed()) }}>Embed</button>
-          <button onClick={() => { yReplaceInArray(selection.node, newTable('')[0]) }}>Table</button>
+          <button onClick={() => { yReplaceInArray(selection.node, createPaint()); setPalette(false) }}>Paint</button>
+          <button onClick={() => replacer(selection,newTable)}>Table</button>
+          <button onClick={() => replacer(selection,createList)}>List</button>
         </div>
       </Modal>
     </>
@@ -234,6 +247,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
       </Modal>
       <Modal show={menu()} setShow={setMenu}>
         <div class='flex flex-col'>
+          <button onClick={() => console.log(exportMD(props.node))}>markdown</button>
           <button onClick={() => yDeleteFromArray(props.node)}>delete</button>
           {/* <button onClick={() => addSection(s)} >+ sibling</button> */}
           <button onClick={() => props.node.get(CHILDREN).unshift([createSection('')[0]])} >+ child</button>
@@ -243,7 +257,7 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
       </Modal>
       <div class=' flex '>
         <div contentEditable={false} class='flex'>
-          <div class=" flex touch-none  w-4 border bg-white" onpointerdown={handleDrag} >
+          <div class=" flex touch-none  w-4 border bg-gray-100" onpointerdown={handleDrag} >
             {/* <HandleIcon2 last={props.last} section={true} sprogs={!(children().length === 0 && content().length === 0)} /> */}
           </div>
         </div>
@@ -271,7 +285,21 @@ export const SectionView: Component<{ node: Y.Map<any>, state: EditorState, dept
 }
 
 
-export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: EditorState }> = (props) => {
+export const ListView: Component<{ node: Y.Map<any>, state: EditorState }> = (props) => {
+
+  // const style = ySignal(props.node,'style')
+
+  const content = yArraySignal(props.node.get(CONTENT))
+  return (
+    <div class='flex flex-col pt-2 pb-2' style='margin-left:-11px'>
+      <For each={content()}>
+        {(item, index) => <ContentContainer node={item} state={props.state} style={index() + 1} />}
+      </For>
+    </div>
+  )
+}
+
+export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: EditorState, style?: number }> = (props) => {
   let r
   const [menu, setMenu] = createSignal(false)
 
@@ -299,15 +327,17 @@ export const ContentContainer: Component<{ node: Y.Map<any> | Y.Text, state: Edi
         </div>
       </Modal>
       <div ref={r} class="flex content" style='margin-top:-1px'>
-        <div contentEditable={false} class='bg-white border font-bold touch-none  w-4' onpointerdown={handleDrag}>
-          <div >
-          </div>
+        <div contentEditable={false} class='bg-white border touch-none  w-4 text-gray-400 text-center' onpointerdown={handleDrag}>
+          {props.style === -1 ? '*' : props.style}
         </div>
         <div class='flex-1'>
           <ErrorBoundary fallback={() => <div class='bg-red-400'>error</div>}>
             <Switch>
               <Match when={props.node instanceof Y.Text}>
                 <TextView node={props.node as Y.Text} state={props.state} tag='p' />
+              </Match>
+              <Match when={props.node.has(CONTENT)}>
+                <ListView node={props.node} state={props.state} />
               </Match>
               <Match when={props.node.has('embed')}>
                 <Embed node={props.node} state={props.state} />
