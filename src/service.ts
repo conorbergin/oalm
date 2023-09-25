@@ -21,9 +21,9 @@ export const string2key = async (key:string) => crypto.subtle.importKey('raw',Ba
 
 const iv = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
-const encrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
+export const encrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
 
-const decrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
+export const decrypt = async (data: ArrayBuffer, user: UserData) => crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, user.masterKey, data)
 
 export const deriveUser = async (userid: string, password: string) => {
     let enc = new TextEncoder()

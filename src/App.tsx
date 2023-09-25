@@ -141,13 +141,14 @@ export const AppView: Component = () => {
     ydoc.destroy()
     ydoc = new Y.Doc()
     const d = docData()
-    if (d) {
+    const u = userData()
+    if (d && u) {
       localStorage.setItem('oalm-last-opened', JSON.stringify(d))
       const indexeddbProvider = new IndexeddbPersistence(d.id, ydoc)
-      const bProvider = new EncryptedWebsocketProvider('',d.id,ydoc)
       // const webrtcProvider = new WebrtcProvider(d.id,ydoc,{signaling:["ws://151.236.219.203:4444"]})
       await indexeddbProvider.whenSynced
-      // syncDoc(ydoc, d, userData()!, counters, true, false)
+      await syncDoc(ydoc, d, userData()!, counters, true, false)
+      const bProvider = new EncryptedWebsocketProvider('wss://oalm-websocket.pernot.workers.dev/',d.id,ydoc,u.masterKey)
     } else {
       const indexeddbProvider = new IndexeddbPersistence('default', ydoc)
       await indexeddbProvider.whenSynced
