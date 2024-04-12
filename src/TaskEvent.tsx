@@ -47,7 +47,7 @@ export type TaskEvent = {
 }
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec']
 
-export const TASKEVENT = '10'
+export const TASKEVENT = 'task-event'
 
 const durationString = (t: string) => Temporal.Duration.from(t).toString().slice(1).toLowerCase()
 

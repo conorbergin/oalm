@@ -2,8 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@media (prefers-color-scheme: dark) {
+    :root {
+        color: white;
+        background-color: rgb(43, 43, 43);
+    }
+}
+
+.highlight {
+    background-color: hsl(0, 0%, 85%);
+}
+
+@media (prefers-color-scheme :dark) {
+    .highlight {
+        background-color:  hsl(0, 0%, 25%);
+    }
+}
+
 html {
     font-size: large;
+}
+
+button {
+    background-color: inherit;
+    text-align: left;
 }
 
 [contenteditable] {
@@ -13,8 +35,11 @@ html {
     white-space: break-spaces;
 }
 
-.oalmText {padding-left: 4px;}
+/* .oalmText {padding-left: 4px;} */
 
+.oalmCode {
+    color: red;
+}
 
 button {
     user-select: none;
@@ -25,18 +50,19 @@ button::selection {
     background: transparent;
 }
 
-
 a {
     color: darkcyan
 }
 
-code { background-color: bisque; font-family: 'InputMono'}
+code {
+    background-color: bisque;
+    font-family: 'InputMono'
+}
 
 .checked {
     color: green
 }
 
 .unchecked {
-
     color: darkred;
 }

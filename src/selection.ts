@@ -1,7 +1,6 @@
 import type * as Y from 'yjs'
 
 export type Sel = {
-    root: Y.Map<any> | Y.Doc,
     node: Y.Text | Y.XmlText,
     offset: number,
     focus: {
@@ -58,7 +57,7 @@ const getParent = (domNode: Node, docFromDom: Map<any, any>): Node => {
 }
 
 // https://stackoverflow.com/questions/6249095/how-to-set-the-caret-cursor-position-in-a-contenteditable-element-div
-class Cursor {
+export class Cursor {
     static getCurrentCursorPosition(parentElement: Element) {
         var selection = window.getSelection(),
             charCount = -1,

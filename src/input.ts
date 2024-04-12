@@ -158,7 +158,6 @@ const deleteSelection = (s: Sel) => {
     const end = s.focus.node
     const e_offset = s.focus.offset
     s.focus = null
-    const textbefore = start.toString().slice(0, s_offset)
     const textafter = end.toString().slice(e_offset)
     const start_path = getPath(start)
     const end_path = getPath(end)
